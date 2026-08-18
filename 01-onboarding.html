@@ -321,11 +321,7 @@
 
   function proceed() {
     if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    if (tg && tg.sendData) {
-      try { tg.sendData(JSON.stringify({ action: 'subscribe' })); } catch (e) {}
-    } else {
-      window.location.href = '02-main-menu.html';
-    }
+    window.location.href = '02-main-menu.html';
   }
 
   if (tg) {
