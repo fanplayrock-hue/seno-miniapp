@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seno Mini App — экраны</title>
+<style>
+  :root { --bg: #000000; --surface: #0B0B0E; --border: #1E1E24; --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --accent: #00E5C7; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: -apple-system, "SF Pro Display", Inter, Roboto, sans-serif; padding: 32px 20px 60px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  a.card { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-decoration: none; color: var(--text-primary); }
+  a.card:active { opacity: 0.8; }
+  a.card .n { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+  a.card .t { font-size: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Seno Mini App — все экраны</h1>
+  <div class="grid">
+    <a class="card" href="00-logo.html"><div class="n">ЛОГОТИП</div><div class="t">Варианты знака</div></a>
+    <a class="card" href="01-onboarding.html"><div class="n">ЭКРАН 1</div><div class="t">Онбординг</div></a>
+    <a class="card" href="02-main-menu.html"><div class="n">ЭКРАН 2</div><div class="t">Главное меню</div></a>
+    <a class="card" href="03-screener.html"><div class="n">ЭКРАН 3</div><div class="t">Скринер</div></a>
+    <a class="card" href="04-analysis.html"><div class="n">ЭКРАН 4</div><div class="t">Анализ монеты</div></a>
+    <a class="card" href="05-factors.html"><div class="n">ЭКРАН 5</div><div class="t">Факторы анализа</div></a>
+    <a class="card" href="06-subscription.html"><div class="n">ЭКРАН 6</div><div class="t">Подписка и оплата</div></a>
+    <a class="card" href="07-referral.html"><div class="n">ЭКРАН 7</div><div class="t">Реферальная программа</div></a>
+    <a class="card" href="08-settings.html"><div class="n">ЭКРАН 8</div><div class="t">Профиль и настройки</div></a>
+    <a class="card" href="09-paywall.html"><div class="n">ЭКРАН 9</div><div class="t">Пейволл</div></a>
+  </div>
+</div>
+</body>
+</html>

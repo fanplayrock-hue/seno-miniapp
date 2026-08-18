@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Seno — Онбординг</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #0B0B0E;
+    --surface-raised: #131318;
+    --border: #1E1E24;
+    --text-primary: #F2F4F7;
+    --text-secondary: #8A8F9C;
+    --text-tertiary: #5A5F6B;
+    --accent: #00E5C7;
+    --up: #1FCF6C;
+    --down: #F6465D;
+    --warn: #F0B90B;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    min-height: 100vh;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 20px 16px;
+    position: relative;
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .brand-icon {
+    width: 48px;
+    height: 48px;
+    filter: drop-shadow(0 0 14px rgba(0, 229, 199, 0.35));
+  }
+
+  .brand-word {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+  }
+
+  h1 {
+    font-size: 21px;
+    line-height: 1.35;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-align: center;
+    margin: 0 0 22px;
+    color: var(--text-primary);
+  }
+
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+
+  .feature-icon {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface-raised);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .feature-icon svg { width: 18px; height: 18px; }
+
+  .feature-text { min-width: 0; }
+
+  .feature-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 2px;
+    letter-spacing: -0.01em;
+  }
+
+  .feature-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  .preview-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin: 4px 0 8px 2px;
+  }
+
+  .signal-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+
+  .signal-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+  .signal-ticker {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .signal-price {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .spark { flex: none; width: 56px; height: 24px; }
+
+  .signal-badge {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .badge-pill {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #04342C;
+    background: var(--up);
+    padding: 3px 8px;
+    border-radius: 8px;
+  }
+
+  .badge-conf {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .disclaimer {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-tertiary);
+    text-align: center;
+    padding: 0 6px;
+    margin-bottom: 14px;
+  }
+
+  .spacer { flex: 1; }
+
+  .how-link {
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 10px 0 4px;
+  }
+
+  .how-link:active { opacity: 0.6; }
+
+  #fallback-main-button {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 420px;
+    height: 50px;
+    margin-top: 8px;
+    background: var(--accent);
+    color: #04342C;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 229, 199, 0.25);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  #fallback-main-button:active { transform: scale(0.97); opacity: 0.92; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="brand">
+    <svg class="brand-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="46" height="46" rx="13" fill="#0B0B0E" stroke="#1E1E24" stroke-width="1.5"/>
+      <path d="M11 30L19 22L25 27L37 14" stroke="#00E5C7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="37" cy="14" r="3" fill="#00E5C7"/>
+    </svg>
+    <div class="brand-word">Seno</div>
+  </div>
+
+  <h1>Готовые торговые сетапы&nbsp;— вход, стоп и цели за секунды</h1>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10.5" cy="10.5" r="6" stroke="#00E5C7" stroke-width="1.6"/>
+          <path d="M20 20L15.5 15.5" stroke="#00E5C7" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M7.5 11L9.5 9L11.5 10.5L14 7.5" stroke="#00E5C7" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="feature-text">
+        <p class="feature-title">Автоматический скрининг рынка</p>
+        <p class="feature-desc">Приложение само находит сетапы по десяткам монет</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="7.5" stroke="#00E5C7" stroke-width="1.6"/>
+          <circle cx="12" cy="12" r="3" stroke="#00E5C7" stroke-width="1.6"/>
+          <circle cx="12" cy="12" r="1.2" fill="#00E5C7"/>
+        </svg>
+      </div>
+      <div class="feature-text">
+        <p class="feature-title">Вход, стоп-лосс и тейк-профиты</p>
+        <p class="feature-desc">Расчёт уже готов — считать уровни вручную не нужно</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="14" width="3.4" height="6" rx="1" stroke="#00E5C7" stroke-width="1.5"/>
+          <rect x="10.3" y="9.5" width="3.4" height="10.5" rx="1" stroke="#00E5C7" stroke-width="1.5"/>
+          <rect x="16.6" y="4.5" width="3.4" height="15.5" rx="1" stroke="#00E5C7" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="feature-text">
+        <p class="feature-title">Разбор факторов</p>
+        <p class="feature-desc">Видно, почему выдан именно такой сигнал</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-label">Так выглядит сигнал</div>
+  <div class="signal-preview">
+    <div class="signal-left">
+      <svg class="spark" viewBox="0 0 56 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 18L9 15L16 19L23 11L30 13L37 6L44 9L55 2" stroke="#1FCF6C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="signal-ticker">BTC</div>
+        <div class="signal-price">$64 512</div>
+      </div>
+    </div>
+    <div class="signal-badge">
+      <span class="badge-pill">LONG 87%</span>
+    </div>
+  </div>
+
+  <p class="disclaimer">Аналитика не является инвестиционной рекомендацией. Торговля криптовалютой сопряжена с риском потери средств.</p>
+
+  <div class="spacer"></div>
+
+  <button id="fallback-main-button">Оформить подписку — $59/мес</button>
+  <a class="how-link" href="#" id="how-it-works">Как это работает</a>
+</div>
+
+<script>
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var fallbackBtn = document.getElementById('fallback-main-button');
+
+  function proceed() {
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    if (tg && tg.sendData) {
+      try { tg.sendData(JSON.stringify({ action: 'subscribe' })); } catch (e) {}
+    } else {
+      window.location.href = '02-main-menu.html';
+    }
+  }
+
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.setBackgroundColor('#000000');
+    tg.setHeaderColor('#000000');
+    tg.MainButton.setParams({
+      text: 'Оформить подписку — $59/мес',
+      color: '#00E5C7',
+      text_color: '#04342C'
+    });
+    tg.MainButton.show();
+    tg.MainButton.onClick(proceed);
+    fallbackBtn.style.display = 'none';
+  } else {
+    fallbackBtn.style.display = 'flex';
+    fallbackBtn.addEventListener('click', proceed);
+  }
+
+  document.getElementById('how-it-works').addEventListener('click', function (e) {
+    e.preventDefault();
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+  });
+</script>
+</body>
+</html>

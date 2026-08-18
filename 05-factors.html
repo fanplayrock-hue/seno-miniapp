@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Seno — Факторы анализа</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
+    --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --text-tertiary: #5A5F6B;
+    --accent: #00E5C7; --up: #1FCF6C; --down: #F6465D; --warn: #F0B90B;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
+  body { display: flex; justify-content: center; }
+  .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); }
+
+  .topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .back-btn { width: 30px; height: 30px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+  .back-btn svg { width: 15px; height: 15px; }
+  .topbar .word { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); }
+
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .summary-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .summary-dir { font-size: 20px; font-weight: 700; color: var(--up); }
+  .summary-conf { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); }
+  .summary-line { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 8px; }
+  .summary-line b { color: var(--text-primary); }
+  .ratio-bar { height: 6px; border-radius: 3px; overflow: hidden; display: flex; background: var(--surface-raised); }
+  .ratio-up { background: var(--up); }
+  .ratio-down { background: var(--down); }
+
+  .filters { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-pill {
+    flex: none; font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary); white-space: nowrap;
+  }
+  .filter-pill.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
+
+  .factor-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .factor-card { border: 1px solid var(--border); border-radius: 16px; padding: 14px; background: var(--surface); }
+  .factor-card.raised { background: var(--surface-raised); }
+
+  .factor-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+  .factor-cat { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 4px; }
+  .factor-name-row { display: flex; align-items: center; gap: 7px; }
+  .factor-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .factor-dot.up { background: var(--up); }
+  .factor-dot.down { background: var(--down); }
+  .factor-name { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+
+  .factor-arrow { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+
+  .factor-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.45; margin: 0 0 10px; }
+
+  .contrib-row { display: flex; align-items: center; gap: 8px; }
+  .contrib-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--surface); overflow: hidden; }
+  .factor-card.raised .contrib-bar { background: #1B1B22; }
+  .contrib-fill { height: 100%; border-radius: 2px; }
+  .contrib-fill.up { background: var(--up); }
+  .contrib-fill.down { background: var(--down); }
+  .contrib-label { flex: none; font-size: 10.5px; color: var(--text-tertiary); font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="topbar">
+    <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <span class="word">Seno · Факторы — BTC/USDT · 4ч</span>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-top">
+      <span class="summary-dir">LONG</span>
+      <span class="summary-conf">уверенность 87%</span>
+    </div>
+    <p class="summary-line">Активных факторов: <b>11</b> · <b style="color:var(--up)">7 за рост</b> · <b style="color:var(--down)">4 за падение</b></p>
+    <div class="ratio-bar"><div class="ratio-up" style="width:63.6%"></div><div class="ratio-down" style="width:36.4%"></div></div>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="filter-pill active" data-f="all">Все</button>
+    <button class="filter-pill" data-f="trend">Тренд</button>
+    <button class="filter-pill" data-f="osc">Осцилляторы</button>
+    <button class="filter-pill" data-f="struct">Структура</button>
+    <button class="filter-pill" data-f="smc">Smart Money</button>
+    <button class="filter-pill" data-f="pattern">Паттерны</button>
+  </div>
+
+  <div class="factor-list" id="list"></div>
+
+</div>
+
+<script>
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) { tg.ready(); tg.expand(); tg.setBackgroundColor('#000000'); tg.setHeaderColor('#000000'); tg.MainButton.hide(); tg.BackButton.show(); tg.BackButton.onClick(function () { window.location.href = '04-analysis.html'; }); }
+  document.getElementById('back').addEventListener('click', function () {
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    window.location.href = '04-analysis.html';
+  });
+
+  function arrowSvg(dir) {
+    var color = dir === 'up' ? '#1FCF6C' : '#F6465D';
+    var path = dir === 'up' ? 'M6 18L18 6M18 6H9M18 6V15' : 'M6 6L18 18M18 18H9M18 18V9';
+    return '<svg class="factor-arrow" viewBox="0 0 24 24" fill="none"><path d="' + path + '" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  var FACTORS = [
+    { cat: 'Тренд', filt: 'trend', name: 'EMA20/50 + структура рынка', desc: 'Тренд определён как восходящий, сила 80%. Учитывается положение EMA и последовательность Higher Highs/Lows.', dir: 'up', contrib: 18.5, raised: false },
+    { cat: 'Осциллятор', filt: 'osc', name: 'RSI(14)', desc: 'RSI 54.3 — нейтральная зона, выше середины диапазона.', dir: 'up', contrib: 6.2, raised: false },
+    { cat: 'Осциллятор', filt: 'osc', name: 'MACD', desc: 'Гистограмма выше нуля (0.000182) — бычий импульс.', dir: 'up', contrib: 9.4, raised: false },
+    { cat: 'Структура рынка', filt: 'struct', name: 'Ближайшая поддержка', desc: 'Уровень 63 180 (3 касания в истории) — 2.1% от текущей цены.', dir: 'up', contrib: 12.8, raised: false },
+    { cat: 'Структура рынка', filt: 'struct', name: 'Ближайшее сопротивление', desc: 'Уровень 66 900 (2 касания в истории) — 3.7% от текущей цены.', dir: 'down', contrib: 8.1, raised: false },
+    { cat: 'Smart Money', filt: 'smc', name: 'Бычий ордерблок', desc: 'Зона 63 820–64 180 — последняя противоположная свеча перед сильным импульсом.', dir: 'up', contrib: 14.2, raised: true },
+    { cat: 'Smart Money', filt: 'smc', name: 'Бычий FVG (имбаланс)', desc: 'Незаполненный разрыв цены 61 058–61 147. Рынок статистически тяготеет заполнять такие зоны.', dir: 'up', contrib: 9.7, raised: true },
+    { cat: 'Smart Money', filt: 'smc', name: 'Медвежий FVG выше', desc: 'Разрыв 68 450–68 610 — потенциальная зона реакции цены сверху.', dir: 'down', contrib: 5.3, raised: true },
+    { cat: 'Паттерн', filt: 'pattern', name: 'Двойное дно', desc: 'Алгоритмически найденный паттерн с уверенностью 65%.', dir: 'up', contrib: 11.0, raised: true },
+    { cat: 'Паттерн', filt: 'pattern', name: 'Симметричный треугольник', desc: 'Сжатие волатильности перед движением, уверенность 50% — риск ложного пробоя.', dir: 'down', contrib: 4.2, raised: true },
+    { cat: 'Осциллятор', filt: 'osc', name: 'Volume Delta', desc: 'Отрицательная дельта объёма на последних 3 свечах — давление продавцов.', dir: 'down', contrib: 4.6, raised: false }
+  ];
+
+  var listEl = document.getElementById('list');
+
+  function render(filter) {
+    var items = filter === 'all' ? FACTORS : FACTORS.filter(function (f) { return f.filt === filter; });
+    listEl.innerHTML = items.map(function (f) {
+      return '<div class="factor-card' + (f.raised ? ' raised' : '') + '">' +
+        '<div class="factor-top"><div><p class="factor-cat">' + f.cat + '</p>' +
+        '<div class="factor-name-row"><div class="factor-dot ' + f.dir + '"></div><span class="factor-name">' + f.name + '</span></div></div>' +
+        arrowSvg(f.dir) + '</div>' +
+        '<p class="factor-desc">' + f.desc + '</p>' +
+        '<div class="contrib-row"><div class="contrib-bar"><div class="contrib-fill ' + f.dir + '" style="width:' + Math.min(100, f.contrib * 5) + '%"></div></div>' +
+        '<span class="contrib-label">Вклад: ' + f.contrib.toFixed(1) + '%</span></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  document.getElementById('filters').addEventListener('click', function (e) {
+    var btn = e.target.closest('.filter-pill');
+    if (!btn) return;
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    document.querySelectorAll('.filter-pill').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    render(btn.getAttribute('data-f'));
+  });
+
+  render('all');
+</script>
+</body>
+</html>

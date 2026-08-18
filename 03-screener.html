@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Seno — Скринер</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #0B0B0E;
+    --surface-raised: #131318;
+    --border: #1E1E24;
+    --text-primary: #F2F4F7;
+    --text-secondary: #8A8F9C;
+    --text-tertiary: #5A5F6B;
+    --accent: #00E5C7;
+    --up: #1FCF6C;
+    --down: #F6465D;
+    --warn: #F0B90B;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
+  body { display: flex; justify-content: center; }
+
+  .app-shell {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  header svg { width: 24px; height: 24px; }
+  header .word { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); }
+  header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0 4px; }
+
+  .segment {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 3px;
+    margin-bottom: 12px;
+  }
+
+  .segment button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 9px 4px;
+    border-radius: 9px;
+    transition: background 0.18s ease-out, color 0.18s ease-out;
+  }
+
+  .segment button.active { background: var(--accent); color: #04342C; }
+  .segment button:active { opacity: 0.85; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
+
+  .search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0 12px;
+    height: 40px;
+  }
+
+  .search svg { width: 15px; height: 15px; flex: none; }
+
+  .search input {
+    border: none;
+    background: transparent;
+    outline: none;
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 13.5px;
+    width: 100%;
+  }
+
+  .search input::placeholder { color: var(--text-tertiary); }
+
+  .refresh-btn {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .refresh-btn svg { width: 17px; height: 17px; transition: transform 0.5s ease-out; }
+  .refresh-btn.spinning svg { transform: rotate(360deg); }
+  .refresh-btn:active { opacity: 0.8; }
+
+  .list { display: flex; flex-direction: column; gap: 8px; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 64px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-left-style: solid;
+    border-radius: 0 14px 14px 0;
+    opacity: 0;
+    animation: rise 0.2s ease-out forwards;
+  }
+
+  .row.wait { opacity: 0.55; }
+  .row.wait { animation-name: rise-wait; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes rise-wait { from { opacity: 0; transform: translateY(4px); } to { opacity: 0.55; transform: translateY(0); } }
+
+  .row-ticker { flex: 1; min-width: 0; }
+  .row-ticker .tk { font-size: 14.5px; font-weight: 700; }
+  .row-ticker .pair { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+
+  .row-price { flex: none; text-align: right; min-width: 78px; }
+  .row-price .pr { font-family: var(--font-mono); font-size: 13px; }
+  .row-price .ch { font-size: 11px; margin-top: 2px; font-weight: 700; }
+  .row-price .ch.up { color: var(--up); }
+  .row-price .ch.down { color: var(--down); }
+
+  .row-badge { flex: none; min-width: 68px; text-align: right; }
+
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+
+  .pill.buy { background: var(--up); color: #04342C; }
+  .pill.sell { background: var(--down); color: #4A1013; }
+  .pill.wait { background: var(--surface-raised); color: var(--text-secondary); border: 1px solid var(--border); }
+
+  .skeleton-row {
+    height: 64px;
+    border-radius: 14px;
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    margin-bottom: 8px;
+  }
+
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+  .empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 56px 24px;
+    color: var(--text-secondary);
+  }
+
+  .empty-state svg { width: 40px; height: 40px; margin-bottom: 14px; }
+  .empty-state p.t { font-size: 14.5px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px; }
+  .empty-state p.d { font-size: 12.5px; margin: 0 0 16px; line-height: 1.4; }
+
+  .empty-refresh {
+    font-size: 13px;
+    font-weight: 700;
+    color: #04342C;
+    background: var(--accent);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 12px;
+  }
+
+  .empty-refresh:active { opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <header>
+    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="46" height="46" rx="13" fill="#0B0B0E" stroke="#1E1E24" stroke-width="1.5"/>
+      <path d="M11 30L19 22L25 27L37 14" stroke="#00E5C7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="37" cy="14" r="3" fill="#00E5C7"/>
+    </svg>
+    <span class="word">Seno</span>
+    <h1>Скринер</h1>
+  </header>
+
+  <div class="segment">
+    <button class="active" data-cat="scalping">Скальпинг</button>
+    <button data-cat="swing">Дневная</button>
+    <button data-cat="position">Долгосрочная</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="#5A5F6B" stroke-width="1.6"/><path d="M20 20L15.5 15.5" stroke="#5A5F6B" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input type="text" placeholder="Найти тикер, например BTC" />
+    </div>
+    <button class="refresh-btn" id="refresh">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="#00E5C7" stroke-width="1.8" stroke-linecap="round"/><path d="M20 4v5h-5" stroke="#00E5C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <div id="skeleton">
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+  </div>
+
+  <div class="list" id="list" style="display: none;"></div>
+
+  <div class="empty-state" id="empty">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="#5A5F6B" stroke-width="1.6"/><path d="M20 20L15.5 15.5" stroke="#5A5F6B" stroke-width="1.6" stroke-linecap="round"/><path d="M7.5 13.5L13.5 7.5" stroke="#5A5F6B" stroke-width="1.4" stroke-linecap="round"/></svg>
+    <p class="t">Сигналов не найдено</p>
+    <p class="d">Рынок в боковике — попробуйте другой таймфрейм</p>
+    <button class="empty-refresh" id="empty-refresh-btn">Обновить</button>
+  </div>
+
+</div>
+
+<script>
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) { tg.ready(); tg.expand(); tg.setBackgroundColor('#000000'); tg.setHeaderColor('#000000'); tg.MainButton.hide(); tg.BackButton.show(); tg.BackButton.onClick(function () { window.location.href = '02-main-menu.html'; }); }
+
+  var DATA = {
+    scalping: [
+      { tk: 'BTC', pair: 'BTC/USDT', pr: '$64 512', ch: '+2.4%', up: true, sig: 'buy', conf: 87 },
+      { tk: 'ETH', pair: 'ETH/USDT', pr: '$3 412', ch: '+1.8%', up: true, sig: 'buy', conf: 74 },
+      { tk: 'SOL', pair: 'SOL/USDT', pr: '$146.80', ch: '−1.2%', up: false, sig: 'sell', conf: 68 },
+      { tk: 'DOGE', pair: 'DOGE/USDT', pr: '$0.1187', ch: '+5.2%', up: true, sig: 'buy', conf: 58 },
+      { tk: 'ARB', pair: 'ARB/USDT', pr: '$0.6120', ch: '−3.4%', up: false, sig: 'sell', conf: 62 },
+      { tk: 'XRP', pair: 'XRP/USDT', pr: '$0.5834', ch: '+3.1%', up: true, sig: 'buy', conf: 61 },
+      { tk: 'AVAX', pair: 'AVAX/USDT', pr: '$28.94', ch: '−2.1%', up: false, sig: 'sell', conf: 55 },
+      { tk: 'BNB', pair: 'BNB/USDT', pr: '$592.10', ch: '+0.4%', up: true, sig: 'wait', conf: 41 },
+      { tk: 'ADA', pair: 'ADA/USDT', pr: '$0.4521', ch: '−0.6%', up: false, sig: 'wait', conf: 35 },
+      { tk: 'NEAR', pair: 'NEAR/USDT', pr: '$4.02', ch: '+1.1%', up: true, sig: 'wait', conf: 33 },
+      { tk: 'LINK', pair: 'LINK/USDT', pr: '$14.62', ch: '+0.2%', up: true, sig: 'wait', conf: 30 },
+      { tk: 'DOT', pair: 'DOT/USDT', pr: '$4.318', ch: '−0.9%', up: false, sig: 'wait', conf: 28 }
+    ],
+    swing: [
+      { tk: 'BTC', pair: 'BTC/USDT', pr: '$64 512', ch: '+0.9%', up: true, sig: 'wait', conf: 80 },
+      { tk: 'SOL', pair: 'SOL/USDT', pr: '$146.80', ch: '+2.7%', up: true, sig: 'buy', conf: 71 },
+      { tk: 'BNB', pair: 'BNB/USDT', pr: '$592.10', ch: '+1.6%', up: true, sig: 'buy', conf: 64 },
+      { tk: 'ARB', pair: 'ARB/USDT', pr: '$0.6120', ch: '+4.8%', up: true, sig: 'buy', conf: 59 },
+      { tk: 'ETH', pair: 'ETH/USDT', pr: '$3 412', ch: '−0.4%', up: false, sig: 'wait', conf: 55 },
+      { tk: 'AVAX', pair: 'AVAX/USDT', pr: '$28.94', ch: '+1.9%', up: true, sig: 'wait', conf: 47 },
+      { tk: 'XRP', pair: 'XRP/USDT', pr: '$0.5834', ch: '−1.1%', up: false, sig: 'wait', conf: 44 },
+      { tk: 'ADA', pair: 'ADA/USDT', pr: '$0.4521', ch: '+0.3%', up: true, sig: 'wait', conf: 38 },
+      { tk: 'DOT', pair: 'DOT/USDT', pr: '$4.318', ch: '+0.7%', up: true, sig: 'wait', conf: 33 },
+      { tk: 'DOGE', pair: 'DOGE/USDT', pr: '$0.1187', ch: '−2.0%', up: false, sig: 'wait', conf: 31 },
+      { tk: 'LINK', pair: 'LINK/USDT', pr: '$14.62', ch: '−0.5%', up: false, sig: 'wait', conf: 29 },
+      { tk: 'NEAR', pair: 'NEAR/USDT', pr: '$4.02', ch: '−1.4%', up: false, sig: 'wait', conf: 26 }
+    ],
+    position: []
+  };
+
+  var listEl = document.getElementById('list');
+  var skeletonEl = document.getElementById('skeleton');
+  var emptyEl = document.getElementById('empty');
+  var currentCat = 'scalping';
+
+  function pill(sig, conf) {
+    var label = sig === 'buy' ? 'BUY' : sig === 'sell' ? 'SELL' : 'WAIT';
+    return '<span class="pill ' + sig + '">' + label + ' ' + conf + '%</span>';
+  }
+
+  function renderRows(rows) {
+    listEl.innerHTML = rows.map(function (r, i) {
+      var stripe = r.sig === 'buy' ? 'var(--up)' : r.sig === 'sell' ? 'var(--down)' : 'var(--border)';
+      return '<div class="row' + (r.sig === 'wait' ? ' wait' : '') + '" style="border-left-color:' + stripe + '; animation-delay:' + (i * 0.03) + 's">' +
+        '<div class="row-ticker"><div class="tk">' + r.tk + '</div><div class="pair">' + r.pair + '</div></div>' +
+        '<div class="row-price"><div class="pr">' + r.pr + '</div><div class="ch ' + (r.up ? 'up' : 'down') + '">' + (r.up ? '▲ ' : '▼ ') + r.ch + '</div></div>' +
+        '<div class="row-badge">' + pill(r.sig, r.conf) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function showCategory(cat, withSkeleton) {
+    currentCat = cat;
+    var rows = DATA[cat];
+    listEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+
+    var delay = withSkeleton ? 600 : 0;
+    if (withSkeleton) skeletonEl.style.display = 'block';
+
+    setTimeout(function () {
+      skeletonEl.style.display = 'none';
+      if (!rows.length) {
+        emptyEl.style.display = 'flex';
+      } else {
+        renderRows(rows);
+        listEl.style.display = 'flex';
+      }
+    }, delay);
+  }
+
+  document.querySelectorAll('.segment button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      document.querySelectorAll('.segment button').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      showCategory(btn.getAttribute('data-cat'), true);
+    });
+  });
+
+  function refresh() {
+    var btn = document.getElementById('refresh');
+    btn.classList.add('spinning');
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+    showCategory(currentCat, true);
+    setTimeout(function () { btn.classList.remove('spinning'); }, 520);
+  }
+
+  document.getElementById('refresh').addEventListener('click', refresh);
+  document.getElementById('empty-refresh-btn').addEventListener('click', function () {
+    document.querySelector('[data-cat="scalping"]').click();
+  });
+
+  document.addEventListener('click', function (e) {
+    var row = e.target.closest('.row');
+    if (row) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      window.location.href = '04-analysis.html';
+    }
+  });
+
+  showCategory('scalping', true);
+</script>
+</body>
+</html>

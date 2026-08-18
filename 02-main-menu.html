@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Seno — Главное меню</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #0B0B0E;
+    --surface-raised: #131318;
+    --border: #1E1E24;
+    --text-primary: #F2F4F7;
+    --text-secondary: #8A8F9C;
+    --text-tertiary: #5A5F6B;
+    --accent: #00E5C7;
+    --up: #1FCF6C;
+    --down: #F6465D;
+    --warn: #F0B90B;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+  }
+
+  body { display: flex; justify-content: center; }
+
+  .app-shell {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+
+  .logo { display: flex; align-items: center; gap: 8px; }
+  .logo svg { width: 26px; height: 26px; }
+  .logo span { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+
+  .user-block { display: flex; align-items: center; gap: 8px; }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .sub-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 8px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .sub-badge.warn { color: #412402; background: var(--warn); border-color: var(--warn); }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin: 0 0 10px 2px;
+  }
+
+  .market-card {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    gap: 18px;
+  }
+
+  .market-item { flex: 1; min-width: 0; }
+  .market-label { font-size: 11px; color: var(--text-secondary); margin: 0 0 6px; }
+
+  .fng-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+  .fng-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; }
+  .fng-class { font-size: 12px; color: var(--warn); font-weight: 700; }
+
+  .fng-scale {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #F6465D, #F0B90B, #1FCF6C);
+    position: relative;
+  }
+
+  .fng-marker {
+    position: absolute;
+    top: -3px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: 2px solid #000;
+    transform: translateX(-50%);
+  }
+
+  .dom-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; }
+  .dom-sub { font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
+
+  .divider-v { width: 1px; background: var(--border); flex: none; }
+
+  .signals-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin: 0 -16px 20px;
+    padding-left: 16px;
+    padding-right: 16px;
+    scroll-snap-type: x proximity;
+  }
+
+  .signals-scroll::-webkit-scrollbar { display: none; }
+
+  .signal-card {
+    flex: none;
+    scroll-snap-align: start;
+    width: 118px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  .signal-card .tk { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .signal-card .pr { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px; }
+
+  .dir-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 7px;
+  }
+
+  .dir-pill.long { background: var(--up); color: #04342C; }
+  .dir-pill.short { background: var(--down); color: #4A1013; }
+
+  .grid-2x2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 96px;
+  }
+
+  .section-card:active { transform: scale(0.97); opacity: 0.9; }
+
+  .section-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--surface-raised);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .section-icon svg { width: 17px; height: 17px; }
+
+  .section-card .st { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 2px; }
+  .section-card .sd { font-size: 11.5px; color: var(--text-secondary); margin: 0; line-height: 1.35; }
+
+  .updated-at {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="46" height="46" rx="13" fill="#0B0B0E" stroke="#1E1E24" stroke-width="1.5"/>
+        <path d="M11 30L19 22L25 27L37 14" stroke="#00E5C7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="37" cy="14" r="3" fill="#00E5C7"/>
+      </svg>
+      <span>Seno</span>
+    </div>
+    <div class="user-block">
+      <span class="sub-badge">Активна · 24 дня</span>
+      <div class="avatar">АК</div>
+    </div>
+  </header>
+
+  <div class="market-card">
+    <div class="market-item">
+      <p class="market-label">Индекс страха и жадности</p>
+      <div class="fng-row">
+        <span class="fng-value">62</span>
+        <span class="fng-class">Жадность</span>
+      </div>
+      <div class="fng-scale"><div class="fng-marker" style="left: 62%;"></div></div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="market-item">
+      <p class="market-label">Доминация BTC</p>
+      <div class="dom-value">54.2%</div>
+      <div class="dom-sub">за 24ч −0.3%</div>
+    </div>
+  </div>
+
+  <p class="section-title">Сигналы сейчас</p>
+  <div class="signals-scroll">
+    <div class="signal-card">
+      <div class="tk">BTC</div>
+      <div class="pr">$64 512</div>
+      <span class="dir-pill long">LONG 87%</span>
+    </div>
+    <div class="signal-card">
+      <div class="tk">ETH</div>
+      <div class="pr">$3 412</div>
+      <span class="dir-pill long">LONG 74%</span>
+    </div>
+    <div class="signal-card">
+      <div class="tk">SOL</div>
+      <div class="pr">$146.80</div>
+      <span class="dir-pill short">SHORT 68%</span>
+    </div>
+    <div class="signal-card">
+      <div class="tk">SUI</div>
+      <div class="pr">$3.92</div>
+      <span class="dir-pill long">LONG 61%</span>
+    </div>
+  </div>
+
+  <p class="section-title">Разделы</p>
+  <div class="grid-2x2">
+    <div class="section-card" data-nav="03-screener.html">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10.5" cy="10.5" r="6" stroke="#00E5C7" stroke-width="1.6"/>
+          <path d="M20 20L15.5 15.5" stroke="#00E5C7" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <p class="st">Скринер</p>
+        <p class="sd">Поиск сетапов по рынку</p>
+      </div>
+    </div>
+
+    <div class="section-card" data-nav="04-analysis.html">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 19L9 12L13 15L20 6" stroke="#00E5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 19H20" stroke="#00E5C7" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <p class="st">Анализ</p>
+        <p class="sd">Разбор конкретной монеты</p>
+      </div>
+    </div>
+
+    <div class="section-card" data-nav="07-referral.html">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="9" cy="9" r="3" stroke="#00E5C7" stroke-width="1.6"/>
+          <circle cx="17" cy="12" r="2.4" stroke="#00E5C7" stroke-width="1.6"/>
+          <path d="M4 19C4 15.5 6.5 14 9 14C11.5 14 13.6 15.3 14 18" stroke="#00E5C7" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M14.5 17.5C14.9 15.8 16 15 17.3 15C19 15 20 16.2 20 18.5" stroke="#00E5C7" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <p class="st">Рефералы</p>
+        <p class="sd">40% с каждого приглашённого</p>
+      </div>
+    </div>
+
+    <div class="section-card" data-nav="06-subscription.html">
+      <div class="section-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3L20 7.5V16.5L12 21L4 16.5V7.5L12 3Z" stroke="#00E5C7" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M9 12L11 14L15.5 9.5" stroke="#00E5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <p class="st">Подписка</p>
+        <p class="sd">Управление доступом</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="updated-at">Данные обновлены 2 минуты назад</p>
+</div>
+
+<script>
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.setBackgroundColor('#000000');
+    tg.setHeaderColor('#000000');
+    tg.MainButton.hide();
+    tg.BackButton.hide();
+  }
+
+  document.querySelectorAll('[data-nav]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      window.location.href = el.getAttribute('data-nav');
+    });
+  });
+
+  document.querySelectorAll('.signal-card').forEach(function (el) {
+    el.addEventListener('click', function () {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      window.location.href = '04-analysis.html';
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Seno — Анализ монеты</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #0B0B0E;
+    --surface-raised: #131318;
+    --border: #1E1E24;
+    --text-primary: #F2F4F7;
+    --text-secondary: #8A8F9C;
+    --text-tertiary: #5A5F6B;
+    --accent: #00E5C7;
+    --up: #1FCF6C;
+    --down: #F6465D;
+    --warn: #F0B90B;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
+  body { display: flex; justify-content: center; }
+
+  .app-shell {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .topbar svg.logo-icon { width: 22px; height: 22px; }
+  .topbar .word { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); flex: 1; }
+  .back-btn { width: 30px; height: 30px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+  .back-btn svg { width: 15px; height: 15px; }
+
+  .coin-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .coin-pair { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 4px; font-weight: 700; }
+  .coin-price { font-family: var(--font-mono); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .coin-change { display: inline-block; margin-left: 8px; font-size: 13px; font-weight: 700; color: var(--up); vertical-align: middle; }
+
+  .tf-pills { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; max-width: 150px; }
+  .tf-pill {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 6px 9px;
+    border-radius: 9px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .tf-pill.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
+
+  .verdict-card {
+    position: relative;
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    background: var(--surface);
+    border: 1px solid var(--up);
+    box-shadow: 0 0 24px rgba(31, 207, 108, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .verdict-left { display: flex; align-items: center; gap: 10px; }
+  .verdict-left svg { width: 26px; height: 26px; }
+  .verdict-dir { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; color: var(--up); margin: 0; }
+  .verdict-sub { font-size: 11.5px; color: var(--text-secondary); margin: 2px 0 0; }
+
+  .verdict-conf { text-align: right; }
+  .verdict-conf .num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--up); }
+  .verdict-conf .lbl { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
+
+  .chart-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .chart-wrap svg { display: block; width: 100%; height: auto; }
+  .watermark { position: absolute; left: 10px; bottom: 10px; opacity: 0.15; width: 26px; height: 26px; }
+
+  .params-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 4px 16px;
+    margin-bottom: 14px;
+  }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .param-row:last-child { border-bottom: none; }
+  .param-label { font-size: 13px; color: var(--text-secondary); }
+  .param-value { font-family: var(--font-mono); font-size: 14px; font-weight: 700; text-align: right; }
+  .param-value .pct { font-size: 11.5px; font-weight: 700; margin-left: 6px; }
+  .param-value.down { color: var(--down); }
+  .param-value.up { color: var(--up); }
+  .param-value.accent { color: var(--accent); }
+  .pct.down { color: var(--down); }
+  .pct.up { color: var(--up); }
+
+  .reasons-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+
+  .reasons-title { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 10px; }
+
+  .reason-row { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; }
+  .reason-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; }
+  .reason-dot.up { background: var(--up); }
+  .reason-dot.down { background: var(--down); }
+  .reason-dot.neutral { background: var(--text-tertiary); }
+  .reason-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+
+  .factors-link {
+    display: block;
+    text-align: right;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+    margin-top: 6px;
+  }
+  .factors-link:active { opacity: 0.7; }
+
+  .disclaimer { font-size: 11px; line-height: 1.5; color: var(--text-tertiary); text-align: center; padding: 0 6px; margin-bottom: 10px; }
+
+  #fallback-main-button {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 50px;
+    background: var(--accent);
+    color: #04342C;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 229, 199, 0.25);
+  }
+  #fallback-main-button:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="topbar">
+    <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <span class="word">Seno · Анализ</span>
+  </div>
+
+  <div class="coin-header">
+    <div>
+      <p class="coin-pair">BTC/USDT</p>
+      <span class="coin-price">$64 512</span>
+      <span class="coin-change">▲ +2.4%</span>
+    </div>
+    <div class="tf-pills">
+      <span class="tf-pill">5м</span>
+      <span class="tf-pill">15м</span>
+      <span class="tf-pill">1ч</span>
+      <span class="tf-pill active">4ч</span>
+      <span class="tf-pill">1д</span>
+    </div>
+  </div>
+
+  <div class="verdict-card">
+    <div class="verdict-left">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 16L10 10L14 13L19 6" stroke="#1FCF6C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 6H19V11" stroke="#1FCF6C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div>
+        <p class="verdict-dir">LONG</p>
+        <p class="verdict-sub">Сетап по confluence-факторам</p>
+      </div>
+    </div>
+    <div class="verdict-conf">
+      <div class="num">87%</div>
+      <div class="lbl">уверенность</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <svg id="chart-svg" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg class="watermark" viewBox="0 0 48 48" fill="none">
+      <rect x="1" y="1" width="46" height="46" rx="13" fill="#0B0B0E" stroke="#F2F4F7" stroke-width="1.5"/>
+      <path d="M11 30L19 22L25 27L37 14" stroke="#F2F4F7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <div class="params-card">
+    <div class="param-row">
+      <span class="param-label">Вход</span>
+      <span class="param-value accent">$64 512</span>
+    </div>
+    <div class="param-row">
+      <span class="param-label">Стоп-лосс</span>
+      <span class="param-value down">$63 180<span class="pct down">−2.1%</span></span>
+    </div>
+    <div class="param-row">
+      <span class="param-label">TP1</span>
+      <span class="param-value up">$66 500<span class="pct up">+3.1%</span></span>
+    </div>
+    <div class="param-row">
+      <span class="param-label">TP2</span>
+      <span class="param-value up">$68 200<span class="pct up">+5.7%</span></span>
+    </div>
+    <div class="param-row">
+      <span class="param-label">TP3</span>
+      <span class="param-value up">$71 000<span class="pct up">+10.1%</span></span>
+    </div>
+    <div class="param-row">
+      <span class="param-label">Risk / Reward</span>
+      <span class="param-value accent">1 : 2.4</span>
+    </div>
+  </div>
+
+  <div class="reasons-card">
+    <p class="reasons-title">Почему такой сигнал</p>
+    <div class="reason-row"><div class="reason-dot up"></div><div class="reason-text">Тренд восходящий (сила 80%)</div></div>
+    <div class="reason-row"><div class="reason-dot up"></div><div class="reason-text">Цена в зоне бычьего ордерблока</div></div>
+    <div class="reason-row"><div class="reason-dot neutral"></div><div class="reason-text">RSI 54 — нейтральная зона</div></div>
+    <div class="reason-row"><div class="reason-dot up"></div><div class="reason-text">Двойное дно (65%)</div></div>
+    <a class="factors-link" href="05-factors.html">Все факторы →</a>
+  </div>
+
+  <p class="disclaimer">⚠️ Не является инвестиционной рекомендацией</p>
+
+  <button id="fallback-main-button">Обновить анализ</button>
+</div>
+
+<script>
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var fallbackBtn = document.getElementById('fallback-main-button');
+
+  function refreshAnalysis() {
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+  }
+
+  if (tg) {
+    tg.ready(); tg.expand(); tg.setBackgroundColor('#000000'); tg.setHeaderColor('#000000');
+    tg.MainButton.setParams({ text: 'Обновить анализ', color: '#00E5C7', text_color: '#04342C' });
+    tg.MainButton.show();
+    tg.MainButton.onClick(refreshAnalysis);
+    tg.BackButton.show();
+    tg.BackButton.onClick(function () { window.location.href = '03-screener.html'; });
+    fallbackBtn.style.display = 'none';
+  } else {
+    fallbackBtn.style.display = 'flex';
+    fallbackBtn.addEventListener('click', refreshAnalysis);
+  }
+
+  document.getElementById('back').addEventListener('click', function () {
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    window.location.href = '03-screener.html';
+  });
+
+  document.querySelectorAll('.tf-pill').forEach(function (p) {
+    p.addEventListener('click', function () {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      document.querySelectorAll('.tf-pill').forEach(function (x) { x.classList.remove('active'); });
+      p.classList.add('active');
+    });
+  });
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function buildChart() {
+    var rnd = mulberry32(42);
+    var svgns = 'http://www.w3.org/2000/svg';
+    var svg = document.getElementById('chart-svg');
+
+    var priceMin = 62000, priceMax = 72500;
+    var plotTop = 16, plotBottom = 152;
+    var volTop = 162, volBottom = 210;
+
+    function y(price) { return plotTop + (priceMax - price) / (priceMax - priceMin) * (plotBottom - plotTop); }
+
+    function el(name, attrs) {
+      var e = document.createElementNS(svgns, name);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    }
+
+    var grid = el('g', {});
+    [64000, 66000, 68000, 70000].forEach(function (gp) {
+      grid.appendChild(el('line', { x1: 0, x2: 400, y1: y(gp), y2: y(gp), stroke: '#14141A', 'stroke-width': 1 }));
+    });
+    svg.appendChild(grid);
+
+    var n = 32, gap = 400 / n, bodyW = gap * 0.56;
+    var price = 64350;
+    var candles = [];
+    for (var i = 0; i < n; i++) {
+      var vol = (rnd() - 0.48) * 520;
+      var open = price;
+      var close = open + vol;
+      if (i === n - 1) close = 64512;
+      var high = Math.max(open, close) + rnd() * 220;
+      var low = Math.min(open, close) - rnd() * 220;
+      candles.push({ open: open, close: close, high: high, low: low });
+      price = close;
+    }
+
+    var candleG = el('g', {});
+    candles.forEach(function (c, i) {
+      var cx = i * gap + gap / 2;
+      var up = c.close >= c.open;
+      var color = up ? '#1FCF6C' : '#F6465D';
+      candleG.appendChild(el('line', { x1: cx, x2: cx, y1: y(c.high), y2: y(c.low), stroke: color, 'stroke-width': 1 }));
+      var bodyTop = y(Math.max(c.open, c.close));
+      var bodyH = Math.max(1.5, Math.abs(y(c.open) - y(c.close)));
+      candleG.appendChild(el('rect', { x: cx - bodyW / 2, y: bodyTop, width: bodyW, height: bodyH, fill: color, rx: 0.6 }));
+    });
+    svg.appendChild(candleG);
+
+    var volG = el('g', {});
+    candles.forEach(function (c, i) {
+      var cx = i * gap + gap / 2;
+      var up = c.close >= c.open;
+      var h = 8 + rnd() * (volBottom - volTop - 8);
+      volG.appendChild(el('rect', {
+        x: cx - bodyW / 2, y: volBottom - h, width: bodyW, height: h,
+        fill: up ? 'rgba(31,207,108,0.45)' : 'rgba(246,70,93,0.45)', rx: 0.6
+      }));
+    });
+    svg.appendChild(volG);
+
+    var levels = [
+      { price: 71000, label: 'TP3', color: '#1FCF6C', dash: '4 3' },
+      { price: 68200, label: 'TP2', color: '#1FCF6C', dash: '4 3' },
+      { price: 66500, label: 'TP1', color: '#1FCF6C', dash: '4 3' },
+      { price: 64512, label: 'ВХОД', color: '#00E5C7', dash: '' },
+      { price: 63180, label: 'SL', color: '#F6465D', dash: '4 3' }
+    ];
+    var levelG = el('g', {});
+    levels.forEach(function (lv) {
+      var ly = y(lv.price);
+      var lineAttrs = { x1: 0, x2: 372, y1: ly, y2: ly, stroke: lv.color, 'stroke-width': 1.2 };
+      if (lv.dash) lineAttrs['stroke-dasharray'] = lv.dash;
+      levelG.appendChild(el('line', lineAttrs));
+
+      var badgeW = lv.label.length > 3 ? 34 : 26;
+      levelG.appendChild(el('rect', { x: 400 - badgeW, y: ly - 7, width: badgeW, height: 14, rx: 4, fill: lv.color }));
+      var txt = el('text', { x: 400 - badgeW / 2, y: ly + 3.5, 'text-anchor': 'middle', 'font-size': 8.5, 'font-weight': 700, fill: '#04070A', 'font-family': 'SF Mono, Consolas, monospace' });
+      txt.textContent = lv.label;
+      levelG.appendChild(txt);
+    });
+    svg.appendChild(levelG);
+  }
+
+  buildChart();
+</script>
+</body>
+</html>
