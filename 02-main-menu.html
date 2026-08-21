@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Главное меню</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="shared.js"></script>
 <style>
   :root {
     --bg: #000000;
@@ -79,6 +80,7 @@
     white-space: nowrap;
   }
 
+  .sub-badge.active { color: #04342C; background: var(--up); border-color: var(--up); }
   .sub-badge.warn { color: #412402; background: var(--warn); border-color: var(--warn); }
 
   .section-title {
@@ -98,6 +100,7 @@
     padding: 14px 16px;
     margin-bottom: 20px;
     gap: 18px;
+    min-height: 66px;
   }
 
   .market-item { flex: 1; min-width: 0; }
@@ -139,6 +142,7 @@
     padding-left: 16px;
     padding-right: 16px;
     scroll-snap-type: x proximity;
+    min-height: 84px;
   }
 
   .signals-scroll::-webkit-scrollbar { display: none; }
@@ -166,8 +170,11 @@
     border-radius: 7px;
   }
 
-  .dir-pill.long { background: var(--up); color: #04342C; }
-  .dir-pill.short { background: var(--down); color: #4A1013; }
+  .dir-pill.buy { background: var(--up); color: #04342C; }
+  .dir-pill.sell { background: var(--down); color: #4A1013; }
+  .dir-pill.wait { background: var(--surface-raised); color: var(--text-secondary); border: 1px solid var(--border); }
+
+  .empty-hint { font-size: 12.5px; color: var(--text-tertiary); padding: 12px 2px; }
 
   .grid-2x2 {
     display: grid;
@@ -209,6 +216,14 @@
     font-size: 11px;
     color: var(--text-tertiary);
   }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 10px;
+  }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 </style>
 </head>
 <body>
@@ -224,50 +239,21 @@
       <span>Seno</span>
     </div>
     <div class="user-block">
-      <span class="sub-badge">Активна · 24 дня</span>
-      <div class="avatar">АК</div>
+      <span class="sub-badge" id="sub-badge">…</span>
+      <div class="avatar" id="avatar">–</div>
     </div>
   </header>
 
-  <div class="market-card">
-    <div class="market-item">
-      <p class="market-label">Индекс страха и жадности</p>
-      <div class="fng-row">
-        <span class="fng-value">62</span>
-        <span class="fng-class">Жадность</span>
-      </div>
-      <div class="fng-scale"><div class="fng-marker" style="left: 62%;"></div></div>
-    </div>
-    <div class="divider-v"></div>
-    <div class="market-item">
-      <p class="market-label">Доминация BTC</p>
-      <div class="dom-value">54.2%</div>
-      <div class="dom-sub">за 24ч −0.3%</div>
-    </div>
+  <div class="market-card" id="market-card">
+    <div class="market-item"><div class="skeleton" style="height:40px"></div></div>
+    <div class="market-item"><div class="skeleton" style="height:40px"></div></div>
   </div>
 
   <p class="section-title">Сигналы сейчас</p>
-  <div class="signals-scroll">
-    <div class="signal-card">
-      <div class="tk">BTC</div>
-      <div class="pr">$64 512</div>
-      <span class="dir-pill long">LONG 87%</span>
-    </div>
-    <div class="signal-card">
-      <div class="tk">ETH</div>
-      <div class="pr">$3 412</div>
-      <span class="dir-pill long">LONG 74%</span>
-    </div>
-    <div class="signal-card">
-      <div class="tk">SOL</div>
-      <div class="pr">$146.80</div>
-      <span class="dir-pill short">SHORT 68%</span>
-    </div>
-    <div class="signal-card">
-      <div class="tk">SUI</div>
-      <div class="pr">$3.92</div>
-      <span class="dir-pill long">LONG 61%</span>
-    </div>
+  <div class="signals-scroll" id="signals-scroll">
+    <div class="signal-card"><div class="skeleton" style="height:60px"></div></div>
+    <div class="signal-card"><div class="skeleton" style="height:60px"></div></div>
+    <div class="signal-card"><div class="skeleton" style="height:60px"></div></div>
   </div>
 
   <p class="section-title">Разделы</p>
@@ -327,33 +313,86 @@
     </div>
   </div>
 
-  <p class="updated-at">Данные обновлены 2 минуты назад</p>
+  <p class="updated-at" id="updated-at"></p>
 </div>
 
 <script>
-  var tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-    tg.setBackgroundColor('#000000');
-    tg.setHeaderColor('#000000');
-    tg.MainButton.hide();
-    tg.BackButton.hide();
-  }
+  if (tg) { tg.MainButton.hide(); tg.BackButton.hide(); }
 
   document.querySelectorAll('[data-nav]').forEach(function (el) {
     el.addEventListener('click', function () {
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-      window.location.href = el.getAttribute('data-nav');
+      haptic('light');
+      goTo(el.getAttribute('data-nav'));
     });
   });
 
-  document.querySelectorAll('.signal-card').forEach(function (el) {
-    el.addEventListener('click', function () {
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-      window.location.href = '04-analysis.html';
+  async function loadMe() {
+    const r = await apiFetch('/api/me');
+    const badge = document.getElementById('sub-badge');
+    const avatar = document.getElementById('avatar');
+    if (!r.ok || !r.data) {
+      badge.textContent = 'Гость';
+      return;
+    }
+    const me = r.data;
+    avatar.textContent = (me.first_name || '?').slice(0, 1).toUpperCase();
+    if (me.subscription.active) {
+      const days = Math.max(0, Math.ceil((new Date(me.subscription.expires_at) - new Date()) / 86400000));
+      badge.textContent = 'Активна · ' + days + ' дн.';
+      badge.className = 'sub-badge ' + (days <= 3 ? 'warn' : 'active');
+    } else {
+      badge.textContent = 'Нет подписки';
+      badge.className = 'sub-badge';
+    }
+  }
+
+  async function loadMarketContext() {
+    const r = await apiFetch('/api/market-context');
+    const el = document.getElementById('market-card');
+    if (!r.ok || !r.data) {
+      el.innerHTML = '<p class="empty-hint">Не удалось загрузить рыночный контекст</p>';
+      return;
+    }
+    const fg = r.data.fear_greed;
+    const dom = r.data.btc_dominance;
+    el.innerHTML =
+      '<div class="market-item"><p class="market-label">Индекс страха и жадности</p>' +
+      (fg
+        ? '<div class="fng-row"><span class="fng-value">' + fg.value + '</span><span class="fng-class">' + fg.classification + '</span></div>' +
+          '<div class="fng-scale"><div class="fng-marker" style="left:' + fg.value + '%"></div></div>'
+        : '<p class="empty-hint">—</p>') +
+      '</div><div class="divider-v"></div>' +
+      '<div class="market-item"><p class="market-label">Доминация BTC</p>' +
+      '<div class="dom-value">' + (dom !== null ? dom + '%' : '—') + '</div></div>';
+  }
+
+  async function loadSignals() {
+    const r = await apiFetch('/api/screener?category=scalping');
+    const el = document.getElementById('signals-scroll');
+    if (!r.ok || !r.data || !r.data.rows.length) {
+      el.innerHTML = '<p class="empty-hint">Пока нет уверенных сигналов — рынок в боковике</p>';
+      return;
+    }
+    el.innerHTML = r.data.rows.slice(0, 4).map(function (row) {
+      const cls = row.signal === 'BUY' ? 'buy' : row.signal === 'SELL' ? 'sell' : 'wait';
+      return '<div class="signal-card" data-symbol="' + row.full_symbol + '" data-tf="' + r.data.timeframe + '">' +
+        '<div class="tk">' + row.symbol + '</div>' +
+        '<div class="pr">$' + fmtPrice(row.price) + '</div>' +
+        '<span class="dir-pill ' + cls + '">' + row.signal + ' ' + row.confidence + '%</span>' +
+        '</div>';
+    }).join('');
+    el.querySelectorAll('.signal-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        haptic('light');
+        goTo('04-analysis.html?' + qs({ symbol: card.getAttribute('data-symbol'), timeframe: card.getAttribute('data-tf') }));
+      });
     });
-  });
+  }
+
+  loadMe();
+  loadMarketContext();
+  loadSignals();
+  document.getElementById('updated-at').textContent = 'Обновлено только что';
 </script>
 </body>
 </html>

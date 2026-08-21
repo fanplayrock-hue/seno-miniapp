@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Рефералы</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="shared.js"></script>
 <style>
   :root {
     --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
@@ -24,14 +25,9 @@
   .topbar .word { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); }
 
   .hero {
-    position: relative;
-    text-align: center;
-    padding: 26px 16px 22px;
-    margin-bottom: 14px;
-    border-radius: 18px;
+    position: relative; text-align: center; padding: 26px 16px 22px; margin-bottom: 14px; border-radius: 18px;
     background: radial-gradient(circle at 50% 20%, rgba(0, 229, 199, 0.16), rgba(0,0,0,0) 68%), var(--surface);
-    border: 1px solid var(--border);
-    overflow: hidden;
+    border: 1px solid var(--border); overflow: hidden; min-height: 60px;
   }
   .hero .amount { font-family: var(--font-mono); font-size: 36px; font-weight: 700; letter-spacing: -0.02em; }
   .hero .amount-lbl { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; }
@@ -51,10 +47,7 @@
   .copy-btn { flex: none; width: 38px; height: 38px; border-radius: 10px; background: var(--surface-raised); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
   .copy-btn svg { width: 16px; height: 16px; }
   .copy-btn.copied { background: var(--up); border-color: var(--up); }
-  .share-btn {
-    width: 100%; padding: 11px; border-radius: 10px; background: var(--accent); color: #04342C;
-    font-family: var(--font); font-size: 13.5px; font-weight: 700; border: none;
-  }
+  .share-btn { width: 100%; padding: 11px; border-radius: 10px; background: var(--accent); color: #04342C; font-family: var(--font); font-size: 13.5px; font-weight: 700; border: none; }
   .share-btn:active { opacity: 0.9; }
 
   .section-title { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 10px 2px; }
@@ -68,9 +61,9 @@
   .payout-progress { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
   .pp-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; }
   .pp-label .l1 { color: var(--text-secondary); }
-  .pp-label .l2 { font-weight: 700; color: var(--up); font-family: var(--font-mono); }
+  .pp-label .l2 { font-weight: 700; font-family: var(--font-mono); }
   .pp-track { height: 6px; border-radius: 3px; background: var(--surface-raised); overflow: hidden; }
-  .pp-fill { height: 100%; background: var(--up); border-radius: 3px; }
+  .pp-fill { height: 100%; border-radius: 3px; }
   .pp-note { font-size: 11px; color: var(--text-tertiary); margin: 8px 0 0; }
 
   .invited-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
@@ -84,6 +77,7 @@
   .inv-status.paid { color: var(--up); }
   .inv-status.unpaid { color: var(--text-tertiary); }
   .inv-amount { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .empty-hint { font-size: 12.5px; color: var(--text-tertiary); padding: 8px 2px; }
 
   #fallback-main-button {
     display: none; align-items: center; justify-content: center; width: 100%; height: 50px;
@@ -102,20 +96,17 @@
     <span class="word">Seno · Рефералы</span>
   </div>
 
-  <div class="hero">
-    <div class="amount">$118.00</div>
-    <div class="amount-lbl">Заработано всего</div>
-  </div>
+  <div class="hero"><div class="amount" id="hero-amount">—</div><div class="amount-lbl">Заработано всего</div></div>
 
   <div class="counters">
-    <div class="counter"><div class="cv">12</div><div class="cl">Приглашено</div></div>
-    <div class="counter"><div class="cv">5</div><div class="cl">Оплатили</div></div>
-    <div class="counter"><div class="cv">$47.20</div><div class="cl">Доступно к выводу</div></div>
+    <div class="counter"><div class="cv" id="c-invited">—</div><div class="cl">Приглашено</div></div>
+    <div class="counter"><div class="cv" id="c-paid">—</div><div class="cl">Оплатили</div></div>
+    <div class="counter"><div class="cv" id="c-available">—</div><div class="cl">Доступно к выводу</div></div>
   </div>
 
   <div class="link-card">
     <div class="link-row">
-      <div class="link-text" id="ref-link">t.me/seno_bot?start=ref_482910537</div>
+      <div class="link-text" id="ref-link">t.me/…</div>
       <button class="copy-btn" id="copy-btn">
         <svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="#F2F4F7" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="#F2F4F7" stroke-width="1.6"/></svg>
       </button>
@@ -127,75 +118,120 @@
   <div class="steps">
     <div class="step-row"><div class="step-num">1</div><div class="step-text">Приглашаете друга по <b>реферальной ссылке</b></div></div>
     <div class="step-row"><div class="step-num">2</div><div class="step-text">Друг оформляет <b>подписку Seno</b></div></div>
-    <div class="step-row"><div class="step-num">3</div><div class="step-text">Вы получаете <b>$23.60 (40% от $59)</b> с каждой его оплаты, включая продления</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">Вы получаете <b id="reward-pct">40%</b> с каждой его оплаты, включая продления</div></div>
   </div>
 
   <div class="payout-progress">
-    <div class="pp-label"><span class="l1">Условие для вывода</span><span class="l2">5 из 5</span></div>
-    <div class="pp-track"><div class="pp-fill" style="width:100%"></div></div>
-    <p class="pp-note">Условие выполнено — доступен вывод от 5 оплативших рефералов</p>
+    <div class="pp-label"><span class="l1">Условие для вывода</span><span class="l2" id="pp-fraction">— из —</span></div>
+    <div class="pp-track"><div class="pp-fill" id="pp-fill" style="width:0%;background:var(--down)"></div></div>
+    <p class="pp-note" id="pp-note"></p>
   </div>
 
   <p class="section-title">Приглашённые</p>
-  <div class="invited-list">
-    <div class="invited-row"><div class="inv-avatar">ИП</div><div class="inv-info"><div class="inv-name">Иван П.</div><div class="inv-date">12.08.2026</div></div><div class="inv-right"><div class="inv-status paid">Оплатил</div><div class="inv-amount">$23.60</div></div></div>
-    <div class="invited-row"><div class="inv-avatar">МС</div><div class="inv-info"><div class="inv-name">Мария С.</div><div class="inv-date">10.08.2026</div></div><div class="inv-right"><div class="inv-status paid">Оплатил</div><div class="inv-amount">$23.60</div></div></div>
-    <div class="invited-row"><div class="inv-avatar">ДК</div><div class="inv-info"><div class="inv-name">Дмитрий К.</div><div class="inv-date">05.08.2026</div></div><div class="inv-right"><div class="inv-status paid">Оплатил</div><div class="inv-amount">$23.60</div></div></div>
-    <div class="invited-row"><div class="inv-avatar">АВ</div><div class="inv-info"><div class="inv-name">Алина В.</div><div class="inv-date">02.08.2026</div></div><div class="inv-right"><div class="inv-status unpaid">Не оплатил</div><div class="inv-amount">—</div></div></div>
-    <div class="invited-row"><div class="inv-avatar">ЕР</div><div class="inv-info"><div class="inv-name">Егор Р.</div><div class="inv-date">28.07.2026</div></div><div class="inv-right"><div class="inv-status paid">Оплатил</div><div class="inv-amount">$23.60</div></div></div>
-    <div class="invited-row"><div class="inv-avatar">ОН</div><div class="inv-info"><div class="inv-name">Ольга Н.</div><div class="inv-date">20.07.2026</div></div><div class="inv-right"><div class="inv-status paid">Оплатил</div><div class="inv-amount">$23.60</div></div></div>
-    <div class="invited-row"><div class="inv-avatar">СТ</div><div class="inv-info"><div class="inv-name">Сергей Т.</div><div class="inv-date">15.07.2026</div></div><div class="inv-right"><div class="inv-status unpaid">Не оплатил</div><div class="inv-amount">—</div></div></div>
-  </div>
+  <div class="invited-list" id="invited-list"><p class="empty-hint">Загрузка…</p></div>
 
   <button id="fallback-main-button">Запросить выплату</button>
 </div>
 
 <script>
-  var tg = window.Telegram && window.Telegram.WebApp;
-  var payoutAvailable = true;
-  var fallbackBtn = document.getElementById('fallback-main-button');
-  var refLink = 'https://t.me/seno_bot?start=ref_482910537';
+  if (tg) { tg.BackButton.show(); tg.BackButton.onClick(function () { goTo('02-main-menu.html'); }); }
+  document.getElementById('back').addEventListener('click', function () { haptic('light'); goTo('02-main-menu.html'); });
 
-  function requestPayout() {
-    if (!payoutAvailable) return;
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  let refLink = '';
+  const fallbackBtn = document.getElementById('fallback-main-button');
+
+  function initials(name) {
+    if (!name) return '?';
+    return name.slice(0, 2).toUpperCase();
   }
 
-  if (tg) {
-    tg.ready(); tg.expand(); tg.setBackgroundColor('#000000'); tg.setHeaderColor('#000000');
-    tg.MainButton.setParams({ text: 'Запросить выплату', color: payoutAvailable ? '#00E5C7' : '#131318', text_color: payoutAvailable ? '#04342C' : '#5A5F6B' });
-    tg.MainButton.show();
-    if (payoutAvailable && tg.MainButton.enable) tg.MainButton.enable();
-    tg.MainButton.onClick(requestPayout);
-    tg.BackButton.show();
-    tg.BackButton.onClick(function () { window.location.href = '02-main-menu.html'; });
-  } else {
-    fallbackBtn.style.display = 'flex';
-    if (!payoutAvailable) fallbackBtn.classList.add('disabled');
-    fallbackBtn.addEventListener('click', requestPayout);
+  async function requestPayout() {
+    haptic('medium');
+    const r = await apiFetch('/api/referral/payout', { method: 'POST', body: '{}' });
+    if (r.data && r.data.ok) {
+      notify('success');
+      alert(r.data.message);
+      load();
+    } else {
+      notify('error');
+      alert((r.data && r.data.message) || 'Не удалось создать заявку.');
+    }
   }
 
-  document.getElementById('back').addEventListener('click', function () {
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    window.location.href = '02-main-menu.html';
-  });
+  function setMainButton(enabled) {
+    if (tg) {
+      tg.MainButton.setParams({ text: 'Запросить выплату', color: enabled ? '#00E5C7' : '#131318', text_color: enabled ? '#04342C' : '#5A5F6B' });
+      tg.MainButton.show();
+      tg.MainButton.offClick(requestPayout);
+      if (enabled) tg.MainButton.onClick(requestPayout);
+      fallbackBtn.style.display = 'none';
+    } else {
+      fallbackBtn.style.display = 'flex';
+      fallbackBtn.className = enabled ? '' : 'disabled';
+      fallbackBtn.onclick = enabled ? requestPayout : null;
+    }
+  }
+
+  async function load() {
+    const r = await apiFetch('/api/referral/stats');
+    if (!r.ok || !r.data) {
+      document.getElementById('invited-list').innerHTML = '<p class="empty-hint">Не удалось загрузить данные. Откройте через Telegram.</p>';
+      setMainButton(false);
+      return;
+    }
+    const d = r.data;
+    refLink = d.link;
+    document.getElementById('ref-link').textContent = d.link.replace('https://', '');
+    document.getElementById('hero-amount').textContent = fmtUsd(d.total_earned_usd);
+    document.getElementById('c-invited').textContent = d.invited;
+    document.getElementById('c-paid').textContent = d.paid_referrals;
+    document.getElementById('c-available').textContent = fmtUsd(d.available_usd);
+    document.getElementById('pp-fraction').textContent = d.paid_referrals + ' из ' + d.min_paid_referrals;
+
+    const pct = Math.min(100, (d.paid_referrals / d.min_paid_referrals) * 100);
+    const fill = document.getElementById('pp-fill');
+    fill.style.width = pct + '%';
+    fill.style.background = d.can_request_payout ? 'var(--up)' : 'var(--warn)';
+
+    document.getElementById('pp-note').textContent = d.can_request_payout
+      ? 'Условие выполнено — доступен вывод от ' + d.min_paid_referrals + ' оплативших рефералов'
+      : 'Осталось ' + Math.max(0, d.min_paid_referrals - d.paid_referrals) + ' оплативших рефералов до вывода (минимум $' + d.min_payout_usd.toFixed(0) + ' на балансе)';
+
+    const listEl = document.getElementById('invited-list');
+    if (!d.invited_list.length) {
+      listEl.innerHTML = '<p class="empty-hint">Пока никого не пригласили — поделитесь ссылкой выше</p>';
+    } else {
+      listEl.innerHTML = d.invited_list.map(function (u) {
+        const name = u.first_name || u.username || ('ID ' + u.telegram_id);
+        return '<div class="invited-row"><div class="inv-avatar">' + initials(name) + '</div>' +
+          '<div class="inv-info"><div class="inv-name">' + name + '</div><div class="inv-date">' + dateRu(u.created_at) + '</div></div>' +
+          '<div class="inv-right"><div class="inv-status ' + (u.paid ? 'paid' : 'unpaid') + '">' + (u.paid ? 'Оплатил' : 'Не оплатил') + '</div>' +
+          '<div class="inv-amount">' + (u.paid ? fmtUsd(u.reward_usd) : '—') + '</div></div></div>';
+      }).join('');
+    }
+
+    setMainButton(d.can_request_payout);
+  }
 
   document.getElementById('copy-btn').addEventListener('click', function () {
-    var btn = this;
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    var done = function () {
+    const btn = this;
+    haptic('light');
+    const done = function () {
       btn.classList.add('copied');
       setTimeout(function () { btn.classList.remove('copied'); }, 1200);
     };
-    if (navigator.clipboard) { navigator.clipboard.writeText(refLink).then(done).catch(done); }
+    if (navigator.clipboard && refLink) { navigator.clipboard.writeText(refLink).then(done).catch(done); }
     else { done(); }
   });
 
   document.getElementById('share-btn').addEventListener('click', function () {
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    var shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(refLink) + '&text=' + encodeURIComponent('Присоединяйся к Seno — технический анализ крипты с готовыми сетапами');
+    haptic('light');
+    if (!refLink) return;
+    const shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(refLink) + '&text=' + encodeURIComponent('Присоединяйся к Seno — технический анализ крипты с готовыми сетапами');
     if (tg && tg.openTelegramLink) { tg.openTelegramLink(shareUrl); } else { window.open(shareUrl, '_blank'); }
   });
+
+  load();
 </script>
 </body>
 </html>

@@ -5,19 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Скринер</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="shared.js"></script>
 <style>
   :root {
-    --bg: #000000;
-    --surface: #0B0B0E;
-    --surface-raised: #131318;
-    --border: #1E1E24;
-    --text-primary: #F2F4F7;
-    --text-secondary: #8A8F9C;
-    --text-tertiary: #5A5F6B;
-    --accent: #00E5C7;
-    --up: #1FCF6C;
-    --down: #F6465D;
-    --warn: #F0B90B;
+    --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
+    --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --text-tertiary: #5A5F6B;
+    --accent: #00E5C7; --up: #1FCF6C; --down: #F6465D;
     --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
     --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
   }
@@ -66,32 +59,6 @@
 
   .toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
 
-  .search {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 0 12px;
-    height: 40px;
-  }
-
-  .search svg { width: 15px; height: 15px; flex: none; }
-
-  .search input {
-    border: none;
-    background: transparent;
-    outline: none;
-    color: var(--text-primary);
-    font-family: var(--font);
-    font-size: 13.5px;
-    width: 100%;
-  }
-
-  .search input::placeholder { color: var(--text-tertiary); }
-
   .refresh-btn {
     flex: none;
     width: 40px;
@@ -102,11 +69,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-left: auto;
   }
 
   .refresh-btn svg { width: 17px; height: 17px; transition: transform 0.5s ease-out; }
   .refresh-btn.spinning svg { transform: rotate(360deg); }
   .refresh-btn:active { opacity: 0.8; }
+
+  .cache-note { font-size: 11px; color: var(--text-tertiary); display: flex; align-items: center; }
 
   .list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -121,15 +91,9 @@
     border-left-width: 3px;
     border-left-style: solid;
     border-radius: 0 14px 14px 0;
-    opacity: 0;
-    animation: rise 0.2s ease-out forwards;
   }
 
   .row.wait { opacity: 0.55; }
-  .row.wait { animation-name: rise-wait; }
-
-  @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes rise-wait { from { opacity: 0; transform: translateY(4px); } to { opacity: 0.55; transform: translateY(0); } }
 
   .row-ticker { flex: 1; min-width: 0; }
   .row-ticker .tk { font-size: 14.5px; font-weight: 700; }
@@ -179,17 +143,19 @@
   .empty-state p.t { font-size: 14.5px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px; }
   .empty-state p.d { font-size: 12.5px; margin: 0 0 16px; line-height: 1.4; }
 
-  .empty-refresh {
-    font-size: 13px;
-    font-weight: 700;
-    color: #04342C;
-    background: var(--accent);
-    border: none;
-    padding: 10px 18px;
-    border-radius: 12px;
+  .lock-card {
+    text-align: center;
+    padding: 20px 16px;
+    margin-top: 4px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
   }
-
-  .empty-refresh:active { opacity: 0.85; }
+  .lock-card p { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 12px; line-height: 1.4; }
+  .lock-btn {
+    font-size: 13px; font-weight: 700; color: #04342C; background: var(--accent);
+    border: none; padding: 10px 18px; border-radius: 12px;
+  }
 </style>
 </head>
 <body>
@@ -212,10 +178,7 @@
   </div>
 
   <div class="toolbar">
-    <div class="search">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="#5A5F6B" stroke-width="1.6"/><path d="M20 20L15.5 15.5" stroke="#5A5F6B" stroke-width="1.6" stroke-linecap="round"/></svg>
-      <input type="text" placeholder="Найти тикер, например BTC" />
-    </div>
+    <span class="cache-note" id="cache-note"></span>
     <button class="refresh-btn" id="refresh">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="#00E5C7" stroke-width="1.8" stroke-linecap="round"/><path d="M20 4v5h-5" stroke="#00E5C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
@@ -231,124 +194,111 @@
   </div>
 
   <div class="list" id="list" style="display: none;"></div>
+  <div class="lock-card" id="lock-card" style="display: none;">
+    <p id="lock-text"></p>
+    <button class="lock-btn" id="lock-btn">Оформить подписку</button>
+  </div>
 
   <div class="empty-state" id="empty">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="#5A5F6B" stroke-width="1.6"/><path d="M20 20L15.5 15.5" stroke="#5A5F6B" stroke-width="1.6" stroke-linecap="round"/><path d="M7.5 13.5L13.5 7.5" stroke="#5A5F6B" stroke-width="1.4" stroke-linecap="round"/></svg>
     <p class="t">Сигналов не найдено</p>
-    <p class="d">Рынок в боковике — попробуйте другой таймфрейм</p>
-    <button class="empty-refresh" id="empty-refresh-btn">Обновить</button>
+    <p class="d">Рынок в боковике — попробуйте другую категорию или обновите позже</p>
   </div>
 
 </div>
 
 <script>
-  var tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) { tg.ready(); tg.expand(); tg.setBackgroundColor('#000000'); tg.setHeaderColor('#000000'); tg.MainButton.hide(); tg.BackButton.show(); tg.BackButton.onClick(function () { window.location.href = '02-main-menu.html'; }); }
+  if (tg) { tg.MainButton.hide(); tg.BackButton.show(); tg.BackButton.onClick(function () { goTo('02-main-menu.html'); }); }
 
-  var DATA = {
-    scalping: [
-      { tk: 'BTC', pair: 'BTC/USDT', pr: '$64 512', ch: '+2.4%', up: true, sig: 'buy', conf: 87 },
-      { tk: 'ETH', pair: 'ETH/USDT', pr: '$3 412', ch: '+1.8%', up: true, sig: 'buy', conf: 74 },
-      { tk: 'SOL', pair: 'SOL/USDT', pr: '$146.80', ch: '−1.2%', up: false, sig: 'sell', conf: 68 },
-      { tk: 'DOGE', pair: 'DOGE/USDT', pr: '$0.1187', ch: '+5.2%', up: true, sig: 'buy', conf: 58 },
-      { tk: 'ARB', pair: 'ARB/USDT', pr: '$0.6120', ch: '−3.4%', up: false, sig: 'sell', conf: 62 },
-      { tk: 'XRP', pair: 'XRP/USDT', pr: '$0.5834', ch: '+3.1%', up: true, sig: 'buy', conf: 61 },
-      { tk: 'AVAX', pair: 'AVAX/USDT', pr: '$28.94', ch: '−2.1%', up: false, sig: 'sell', conf: 55 },
-      { tk: 'BNB', pair: 'BNB/USDT', pr: '$592.10', ch: '+0.4%', up: true, sig: 'wait', conf: 41 },
-      { tk: 'ADA', pair: 'ADA/USDT', pr: '$0.4521', ch: '−0.6%', up: false, sig: 'wait', conf: 35 },
-      { tk: 'NEAR', pair: 'NEAR/USDT', pr: '$4.02', ch: '+1.1%', up: true, sig: 'wait', conf: 33 },
-      { tk: 'LINK', pair: 'LINK/USDT', pr: '$14.62', ch: '+0.2%', up: true, sig: 'wait', conf: 30 },
-      { tk: 'DOT', pair: 'DOT/USDT', pr: '$4.318', ch: '−0.9%', up: false, sig: 'wait', conf: 28 }
-    ],
-    swing: [
-      { tk: 'BTC', pair: 'BTC/USDT', pr: '$64 512', ch: '+0.9%', up: true, sig: 'wait', conf: 80 },
-      { tk: 'SOL', pair: 'SOL/USDT', pr: '$146.80', ch: '+2.7%', up: true, sig: 'buy', conf: 71 },
-      { tk: 'BNB', pair: 'BNB/USDT', pr: '$592.10', ch: '+1.6%', up: true, sig: 'buy', conf: 64 },
-      { tk: 'ARB', pair: 'ARB/USDT', pr: '$0.6120', ch: '+4.8%', up: true, sig: 'buy', conf: 59 },
-      { tk: 'ETH', pair: 'ETH/USDT', pr: '$3 412', ch: '−0.4%', up: false, sig: 'wait', conf: 55 },
-      { tk: 'AVAX', pair: 'AVAX/USDT', pr: '$28.94', ch: '+1.9%', up: true, sig: 'wait', conf: 47 },
-      { tk: 'XRP', pair: 'XRP/USDT', pr: '$0.5834', ch: '−1.1%', up: false, sig: 'wait', conf: 44 },
-      { tk: 'ADA', pair: 'ADA/USDT', pr: '$0.4521', ch: '+0.3%', up: true, sig: 'wait', conf: 38 },
-      { tk: 'DOT', pair: 'DOT/USDT', pr: '$4.318', ch: '+0.7%', up: true, sig: 'wait', conf: 33 },
-      { tk: 'DOGE', pair: 'DOGE/USDT', pr: '$0.1187', ch: '−2.0%', up: false, sig: 'wait', conf: 31 },
-      { tk: 'LINK', pair: 'LINK/USDT', pr: '$14.62', ch: '−0.5%', up: false, sig: 'wait', conf: 29 },
-      { tk: 'NEAR', pair: 'NEAR/USDT', pr: '$4.02', ch: '−1.4%', up: false, sig: 'wait', conf: 26 }
-    ],
-    position: []
-  };
+  const listEl = document.getElementById('list');
+  const skeletonEl = document.getElementById('skeleton');
+  const emptyEl = document.getElementById('empty');
+  const lockCard = document.getElementById('lock-card');
+  const cacheNote = document.getElementById('cache-note');
+  let currentCat = 'scalping';
 
-  var listEl = document.getElementById('list');
-  var skeletonEl = document.getElementById('skeleton');
-  var emptyEl = document.getElementById('empty');
-  var currentCat = 'scalping';
-
-  function pill(sig, conf) {
-    var label = sig === 'buy' ? 'BUY' : sig === 'sell' ? 'SELL' : 'WAIT';
-    return '<span class="pill ' + sig + '">' + label + ' ' + conf + '%</span>';
+  function pillHtml(sig, conf) {
+    const cls = sig === 'BUY' ? 'buy' : sig === 'SELL' ? 'sell' : 'wait';
+    return '<span class="pill ' + cls + '">' + sig + ' ' + conf + '%</span>';
   }
 
-  function renderRows(rows) {
-    listEl.innerHTML = rows.map(function (r, i) {
-      var stripe = r.sig === 'buy' ? 'var(--up)' : r.sig === 'sell' ? 'var(--down)' : 'var(--border)';
-      return '<div class="row' + (r.sig === 'wait' ? ' wait' : '') + '" style="border-left-color:' + stripe + '; animation-delay:' + (i * 0.03) + 's">' +
-        '<div class="row-ticker"><div class="tk">' + r.tk + '</div><div class="pair">' + r.pair + '</div></div>' +
-        '<div class="row-price"><div class="pr">' + r.pr + '</div><div class="ch ' + (r.up ? 'up' : 'down') + '">' + (r.up ? '▲ ' : '▼ ') + r.ch + '</div></div>' +
-        '<div class="row-badge">' + pill(r.sig, r.conf) + '</div>' +
+  function renderRows(rows, timeframe) {
+    listEl.innerHTML = rows.map(function (r) {
+      const stripe = r.signal === 'BUY' ? 'var(--up)' : r.signal === 'SELL' ? 'var(--down)' : 'var(--border)';
+      const changeCls = r.change !== null && r.change >= 0 ? 'up' : 'down';
+      const changeTxt = r.change !== null ? (r.change >= 0 ? '▲ ' : '▼ ') + fmtPct(r.change) : '—';
+      return '<div class="row' + (r.signal === 'WAIT' ? ' wait' : '') + '" style="border-left-color:' + stripe + '" data-symbol="' + r.full_symbol + '">' +
+        '<div class="row-ticker"><div class="tk">' + r.symbol + '</div><div class="pair">' + r.full_symbol + '</div></div>' +
+        '<div class="row-price"><div class="pr">$' + fmtPrice(r.price) + '</div><div class="ch ' + changeCls + '">' + changeTxt + '</div></div>' +
+        '<div class="row-badge">' + pillHtml(r.signal, r.confidence) + '</div>' +
         '</div>';
     }).join('');
+    listEl.querySelectorAll('.row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        haptic('light');
+        goTo('04-analysis.html?' + qs({ symbol: row.getAttribute('data-symbol'), timeframe: timeframe }));
+      });
+    });
   }
 
-  function showCategory(cat, withSkeleton) {
-    currentCat = cat;
-    var rows = DATA[cat];
+  async function loadCategory(category) {
+    currentCat = category;
     listEl.style.display = 'none';
     emptyEl.style.display = 'none';
+    lockCard.style.display = 'none';
+    skeletonEl.style.display = 'block';
 
-    var delay = withSkeleton ? 600 : 0;
-    if (withSkeleton) skeletonEl.style.display = 'block';
+    const r = await apiFetch('/api/screener?' + qs({ category: category }));
+    skeletonEl.style.display = 'none';
 
-    setTimeout(function () {
-      skeletonEl.style.display = 'none';
-      if (!rows.length) {
-        emptyEl.style.display = 'flex';
-      } else {
-        renderRows(rows);
-        listEl.style.display = 'flex';
-      }
-    }, delay);
+    if (!r.ok || !r.data) {
+      emptyEl.style.display = 'flex';
+      return;
+    }
+
+    const data = r.data;
+    cacheNote.textContent = data.cache_age_seconds !== null ? 'Обновлено ' + timeAgoRu(data.cache_age_seconds) : '';
+
+    if (!data.rows.length) {
+      emptyEl.style.display = 'flex';
+      return;
+    }
+
+    renderRows(data.rows, data.timeframe);
+    listEl.style.display = 'flex';
+
+    if (data.locked) {
+      const hidden = data.total - data.rows.length;
+      document.getElementById('lock-text').textContent =
+        'Показаны ' + data.rows.length + ' из ' + data.total + ' сигналов. Ещё ' + hidden + ' — по подписке.';
+      lockCard.style.display = 'block';
+    }
   }
 
   document.querySelectorAll('.segment button').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      haptic('light');
       document.querySelectorAll('.segment button').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      showCategory(btn.getAttribute('data-cat'), true);
+      loadCategory(btn.getAttribute('data-cat'));
     });
   });
 
-  function refresh() {
-    var btn = document.getElementById('refresh');
+  document.getElementById('refresh').addEventListener('click', function () {
+    const btn = this;
     btn.classList.add('spinning');
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-    showCategory(currentCat, true);
-    setTimeout(function () { btn.classList.remove('spinning'); }, 520);
-  }
-
-  document.getElementById('refresh').addEventListener('click', refresh);
-  document.getElementById('empty-refresh-btn').addEventListener('click', function () {
-    document.querySelector('[data-cat="scalping"]').click();
+    haptic('medium');
+    loadCategory(currentCat).then(function () {
+      setTimeout(function () { btn.classList.remove('spinning'); }, 500);
+    });
   });
 
-  document.addEventListener('click', function (e) {
-    var row = e.target.closest('.row');
-    if (row) {
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-      window.location.href = '04-analysis.html';
-    }
+  document.getElementById('lock-btn').addEventListener('click', function () {
+    haptic('light');
+    goTo('06-subscription.html');
   });
 
-  showCategory('scalping', true);
+  loadCategory('scalping');
 </script>
 </body>
 </html>

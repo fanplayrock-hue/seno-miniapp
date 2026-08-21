@@ -5,19 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Анализ монеты</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="shared.js"></script>
 <style>
   :root {
-    --bg: #000000;
-    --surface: #0B0B0E;
-    --surface-raised: #131318;
-    --border: #1E1E24;
-    --text-primary: #F2F4F7;
-    --text-secondary: #8A8F9C;
-    --text-tertiary: #5A5F6B;
-    --accent: #00E5C7;
-    --up: #1FCF6C;
-    --down: #F6465D;
-    --warn: #F0B90B;
+    --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
+    --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --text-tertiary: #5A5F6B;
+    --accent: #00E5C7; --up: #1FCF6C; --down: #F6465D;
     --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
     --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
   }
@@ -26,12 +20,7 @@
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
   body { display: flex; justify-content: center; }
 
-  .app-shell {
-    width: 100%;
-    max-width: 420px;
-    min-height: 100vh;
-    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
-  }
+  .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); position: relative; }
 
   .topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
   .topbar svg.logo-icon { width: 22px; height: 22px; }
@@ -39,129 +28,90 @@
   .back-btn { width: 30px; height: 30px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
   .back-btn svg { width: 15px; height: 15px; }
 
-  .coin-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
-  .coin-pair { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 4px; font-weight: 700; }
+  .coin-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
+  .coin-pick { display: flex; align-items: center; gap: 6px; }
+  .coin-pair { font-size: 14px; color: var(--text-primary); margin: 0 0 4px; font-weight: 700; }
+  .coin-pick svg { width: 14px; height: 14px; margin-top: -8px; }
   .coin-price { font-family: var(--font-mono); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
-  .coin-change { display: inline-block; margin-left: 8px; font-size: 13px; font-weight: 700; color: var(--up); vertical-align: middle; }
+  .coin-change { display: inline-block; margin-left: 8px; font-size: 13px; font-weight: 700; vertical-align: middle; }
+  .coin-change.up { color: var(--up); } .coin-change.down { color: var(--down); }
 
   .tf-pills { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; max-width: 150px; }
   .tf-pill {
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    font-weight: 700;
-    padding: 6px 9px;
-    border-radius: 9px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
+    font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; padding: 6px 9px; border-radius: 9px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary);
   }
   .tf-pill.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
 
   .verdict-card {
-    position: relative;
-    border-radius: 18px;
-    padding: 16px 18px;
-    margin-bottom: 14px;
-    background: var(--surface);
-    border: 1px solid var(--up);
-    box-shadow: 0 0 24px rgba(31, 207, 108, 0.16);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; background: var(--surface);
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
+    min-height: 62px;
   }
+  .verdict-card.buy { border-color: var(--up); box-shadow: 0 0 24px rgba(31,207,108,0.16); }
+  .verdict-card.sell { border-color: var(--down); box-shadow: 0 0 24px rgba(246,70,93,0.16); }
 
   .verdict-left { display: flex; align-items: center; gap: 10px; }
   .verdict-left svg { width: 26px; height: 26px; }
-  .verdict-dir { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; color: var(--up); margin: 0; }
+  .verdict-dir { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+  .verdict-dir.buy { color: var(--up); } .verdict-dir.sell { color: var(--down); } .verdict-dir.wait { color: var(--text-secondary); }
   .verdict-sub { font-size: 11.5px; color: var(--text-secondary); margin: 2px 0 0; }
 
   .verdict-conf { text-align: right; }
-  .verdict-conf .num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--up); }
+  .verdict-conf .num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
   .verdict-conf .lbl { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
 
-  .chart-wrap {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 14px;
-  }
+  .chart-wrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 14px; height: 280px; }
+  #chart-container { width: 100%; height: 100%; }
+  .watermark { position: absolute; left: 10px; bottom: 10px; opacity: 0.15; width: 26px; height: 26px; pointer-events: none; z-index: 2; }
+  .chart-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 12.5px; }
 
-  .chart-wrap svg { display: block; width: 100%; height: auto; }
-  .watermark { position: absolute; left: 10px; bottom: 10px; opacity: 0.15; width: 26px; height: 26px; }
-
-  .params-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 4px 16px;
-    margin-bottom: 14px;
-  }
-
-  .param-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 11px 0;
-    border-bottom: 1px solid var(--border);
-  }
+  .params-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 4px 16px; margin-bottom: 14px; }
+  .param-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
   .param-row:last-child { border-bottom: none; }
   .param-label { font-size: 13px; color: var(--text-secondary); }
   .param-value { font-family: var(--font-mono); font-size: 14px; font-weight: 700; text-align: right; }
   .param-value .pct { font-size: 11.5px; font-weight: 700; margin-left: 6px; }
-  .param-value.down { color: var(--down); }
-  .param-value.up { color: var(--up); }
-  .param-value.accent { color: var(--accent); }
-  .pct.down { color: var(--down); }
-  .pct.up { color: var(--up); }
+  .param-value.down { color: var(--down); } .param-value.up { color: var(--up); } .param-value.accent { color: var(--accent); }
+  .pct.down { color: var(--down); } .pct.up { color: var(--up); }
 
-  .reasons-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    margin-bottom: 14px;
-  }
-
+  .reasons-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
   .reasons-title { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 10px; }
-
   .reason-row { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; }
-  .reason-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; }
-  .reason-dot.up { background: var(--up); }
-  .reason-dot.down { background: var(--down); }
-  .reason-dot.neutral { background: var(--text-tertiary); }
+  .reason-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; background: var(--text-tertiary); }
   .reason-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
-
-  .factors-link {
-    display: block;
-    text-align: right;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--accent);
-    text-decoration: none;
-    margin-top: 6px;
-  }
+  .factors-link { display: block; text-align: right; font-size: 12.5px; font-weight: 700; color: var(--accent); text-decoration: none; margin-top: 6px; }
   .factors-link:active { opacity: 0.7; }
 
   .disclaimer { font-size: 11px; line-height: 1.5; color: var(--text-tertiary); text-align: center; padding: 0 6px; margin-bottom: 10px; }
 
+  .lock-card { text-align: center; padding: 26px 18px; margin-bottom: 14px; background: var(--surface); border: 1px solid var(--accent); border-radius: 16px; }
+  .lock-card p { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px; line-height: 1.4; }
+  .lock-btn { font-size: 13.5px; font-weight: 700; color: #04342C; background: var(--accent); border: none; padding: 11px 20px; border-radius: 12px; }
+
   #fallback-main-button {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 50px;
-    background: var(--accent);
-    color: #04342C;
-    font-family: var(--font);
-    font-size: 15px;
-    font-weight: 700;
-    border: none;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0, 229, 199, 0.25);
+    display: none; align-items: center; justify-content: center; width: 100%; height: 50px;
+    background: var(--accent); color: #04342C; font-family: var(--font); font-size: 15px; font-weight: 700;
+    border: none; border-radius: 12px; box-shadow: 0 0 20px rgba(0, 229, 199, 0.25);
   }
   #fallback-main-button:active { transform: scale(0.97); }
+
+  /* Coin picker overlay */
+  .picker-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: flex-end; justify-content: center; z-index: 50;
+  }
+  .picker-sheet {
+    width: 100%; max-width: 420px; background: var(--surface); border-radius: 20px 20px 0 0; border: 1px solid var(--border);
+    padding: 16px; max-height: 70vh; display: flex; flex-direction: column;
+  }
+  .picker-search {
+    background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px;
+    color: var(--text-primary); font-family: var(--font); font-size: 14px; margin-bottom: 12px; width: 100%;
+  }
+  .picker-list { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .picker-item { padding: 12px 10px; border-radius: 10px; font-size: 14.5px; font-weight: 700; }
+  .picker-item:active { background: var(--surface-raised); }
+  .picker-close { text-align: center; font-size: 13px; color: var(--text-secondary); padding: 10px 0 2px; }
 </style>
 </head>
 <body>
@@ -174,210 +124,364 @@
 
   <div class="coin-header">
     <div>
-      <p class="coin-pair">BTC/USDT</p>
-      <span class="coin-price">$64 512</span>
-      <span class="coin-change">▲ +2.4%</span>
+      <div class="coin-pick" id="coin-pick">
+        <p class="coin-pair" id="coin-pair">BTC/USDT</p>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="#8A8F9C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="coin-price" id="coin-price">—</span>
+      <span class="coin-change" id="coin-change"></span>
     </div>
-    <div class="tf-pills">
-      <span class="tf-pill">5м</span>
-      <span class="tf-pill">15м</span>
-      <span class="tf-pill">1ч</span>
-      <span class="tf-pill active">4ч</span>
-      <span class="tf-pill">1д</span>
+    <div class="tf-pills" id="tf-pills">
+      <span class="tf-pill" data-tf="5m">5м</span>
+      <span class="tf-pill" data-tf="15m">15м</span>
+      <span class="tf-pill" data-tf="1h">1ч</span>
+      <span class="tf-pill active" data-tf="4h">4ч</span>
+      <span class="tf-pill" data-tf="1d">1д</span>
     </div>
   </div>
 
-  <div class="verdict-card">
+  <div class="verdict-card" id="verdict-card">
     <div class="verdict-left">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M5 16L10 10L14 13L19 6" stroke="#1FCF6C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 6H19V11" stroke="#1FCF6C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg id="verdict-icon" viewBox="0 0 24 24" fill="none"></svg>
       <div>
-        <p class="verdict-dir">LONG</p>
+        <p class="verdict-dir" id="verdict-dir">—</p>
         <p class="verdict-sub">Сетап по confluence-факторам</p>
       </div>
     </div>
     <div class="verdict-conf">
-      <div class="num">87%</div>
+      <div class="num" id="verdict-conf">—</div>
       <div class="lbl">уверенность</div>
     </div>
   </div>
 
   <div class="chart-wrap">
-    <svg id="chart-svg" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="chart-container"></div>
+    <div class="chart-loading" id="chart-loading">Загружаю график…</div>
     <svg class="watermark" viewBox="0 0 48 48" fill="none">
       <rect x="1" y="1" width="46" height="46" rx="13" fill="#0B0B0E" stroke="#F2F4F7" stroke-width="1.5"/>
       <path d="M11 30L19 22L25 27L37 14" stroke="#F2F4F7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
 
-  <div class="params-card">
-    <div class="param-row">
-      <span class="param-label">Вход</span>
-      <span class="param-value accent">$64 512</span>
+  <div id="content-below" style="display:none">
+    <div class="params-card" id="params-card"></div>
+
+    <div class="reasons-card">
+      <p class="reasons-title">Почему такой сигнал</p>
+      <div id="reasons-list"></div>
+      <a class="factors-link" href="#" id="factors-link">Все факторы →</a>
     </div>
-    <div class="param-row">
-      <span class="param-label">Стоп-лосс</span>
-      <span class="param-value down">$63 180<span class="pct down">−2.1%</span></span>
-    </div>
-    <div class="param-row">
-      <span class="param-label">TP1</span>
-      <span class="param-value up">$66 500<span class="pct up">+3.1%</span></span>
-    </div>
-    <div class="param-row">
-      <span class="param-label">TP2</span>
-      <span class="param-value up">$68 200<span class="pct up">+5.7%</span></span>
-    </div>
-    <div class="param-row">
-      <span class="param-label">TP3</span>
-      <span class="param-value up">$71 000<span class="pct up">+10.1%</span></span>
-    </div>
-    <div class="param-row">
-      <span class="param-label">Risk / Reward</span>
-      <span class="param-value accent">1 : 2.4</span>
-    </div>
+
+    <p class="disclaimer">⚠️ Не является инвестиционной рекомендацией</p>
   </div>
 
-  <div class="reasons-card">
-    <p class="reasons-title">Почему такой сигнал</p>
-    <div class="reason-row"><div class="reason-dot up"></div><div class="reason-text">Тренд восходящий (сила 80%)</div></div>
-    <div class="reason-row"><div class="reason-dot up"></div><div class="reason-text">Цена в зоне бычьего ордерблока</div></div>
-    <div class="reason-row"><div class="reason-dot neutral"></div><div class="reason-text">RSI 54 — нейтральная зона</div></div>
-    <div class="reason-row"><div class="reason-dot up"></div><div class="reason-text">Двойное дно (65%)</div></div>
-    <a class="factors-link" href="05-factors.html">Все факторы →</a>
+  <div class="lock-card" id="lock-card" style="display:none">
+    <p id="lock-text">Полный анализ этой монеты доступен по подписке. Бесплатно можно посмотреть BTC/USDT на 4ч.</p>
+    <button class="lock-btn" id="lock-btn">Оформить подписку — $59/мес</button>
   </div>
-
-  <p class="disclaimer">⚠️ Не является инвестиционной рекомендацией</p>
 
   <button id="fallback-main-button">Обновить анализ</button>
 </div>
 
-<script>
-  var tg = window.Telegram && window.Telegram.WebApp;
-  var fallbackBtn = document.getElementById('fallback-main-button');
+<div class="picker-overlay" id="picker-overlay">
+  <div class="picker-sheet">
+    <input class="picker-search" id="picker-search" placeholder="Найти монету, например BTC" />
+    <div class="picker-list" id="picker-list"></div>
+    <div class="picker-close" id="picker-close">Закрыть</div>
+  </div>
+</div>
 
-  function refreshAnalysis() {
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+<script>
+  const params = new URLSearchParams(window.location.search);
+  let currentSymbol = params.get('symbol') || 'BTC/USDT';
+  let currentTf = params.get('timeframe') || '4h';
+  let chart = null, candleSeries = null, volumeSeries = null;
+  const extraSeries = [];
+
+  function setActiveTf(tf) {
+    document.querySelectorAll('.tf-pill').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-tf') === tf);
+    });
   }
 
+  function ensureChart() {
+    if (chart) return;
+    chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+      layout: { background: { color: '#0B0B0E' }, textColor: '#8A8F9C', fontFamily: 'SF Mono, Consolas, monospace', fontSize: 10 },
+      grid: { vertLines: { color: '#14141A' }, horzLines: { color: '#14141A' } },
+      rightPriceScale: { borderColor: '#1E1E24' },
+      timeScale: { borderColor: '#1E1E24', timeVisible: true, secondsVisible: false },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      handleScroll: true,
+      handleScale: true,
+    });
+    candleSeries = chart.addCandlestickSeries({
+      upColor: '#1FCF6C', downColor: '#F6465D', borderVisible: false,
+      wickUpColor: '#1FCF6C', wickDownColor: '#F6465D',
+    });
+    volumeSeries = chart.addHistogramSeries({
+      priceFormat: { type: 'volume' }, priceScaleId: '', color: '#1FCF6C',
+    });
+    volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+
+    window.addEventListener('resize', function () {
+      chart.applyOptions({ width: document.getElementById('chart-container').clientWidth });
+    });
+  }
+
+  function clearExtraSeries() {
+    extraSeries.forEach(function (s) { try { chart.removeSeries(s); } catch (e) {} });
+    extraSeries.length = 0;
+  }
+
+  function addZone(timeStart, timeEnd, top, bottom, color, label) {
+    if (!timeStart || !timeEnd || top === bottom) return;
+    const upper = chart.addLineSeries({ color: color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+    upper.setData([{ time: timeStart, value: top }, { time: timeEnd, value: top }]);
+    const lower = chart.addLineSeries({ color: color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+    lower.setData([{ time: timeStart, value: bottom }, { time: timeEnd, value: bottom }]);
+    if (label) {
+      upper.setMarkers([{ time: timeEnd, position: 'inBar', color: color, shape: 'square', text: label, size: 0 }]);
+    }
+    extraSeries.push(upper, lower);
+  }
+
+  function addHLine(timeStart, timeEnd, price, color, dashed) {
+    if (price === null || price === undefined) return;
+    const s = chart.addLineSeries({
+      color: color, lineWidth: 1, lineStyle: dashed ? 2 : 0,
+      lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false,
+    });
+    s.setData([{ time: timeStart, value: price }, { time: timeEnd, value: price }]);
+    extraSeries.push(s);
+  }
+
+  function buildChart(data) {
+    ensureChart();
+    clearExtraSeries();
+
+    candleSeries.setData(data.chart.candles);
+    volumeSeries.setData(data.chart.volumes);
+
+    if (data.chart.ema20) {
+      const e20 = chart.addLineSeries({ color: '#00E5C7', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+      e20.setData(data.chart.ema20);
+      extraSeries.push(e20);
+    }
+    if (data.chart.ema50) {
+      const e50 = chart.addLineSeries({ color: '#F0B90B', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+      e50.setData(data.chart.ema50);
+      extraSeries.push(e50);
+    }
+
+    (data.sr.support || []).slice(0, 2).forEach(function (lvl) {
+      const tEnd = data.chart.candles[data.chart.candles.length - 1].time;
+      addHLine(lvl.time_start, tEnd, lvl.price, 'rgba(0,229,199,0.55)', true);
+    });
+    (data.sr.resistance || []).slice(0, 2).forEach(function (lvl) {
+      const tEnd = data.chart.candles[data.chart.candles.length - 1].time;
+      addHLine(lvl.time_start, tEnd, lvl.price, 'rgba(246,70,93,0.55)', true);
+    });
+
+    if (data.smc) {
+      (data.smc.bull_obs || []).forEach(function (z) { addZone(z.time_start, z.time_end, z.top, z.bottom, 'rgba(31,207,108,0.5)', 'OB'); });
+      (data.smc.bear_obs || []).forEach(function (z) { addZone(z.time_start, z.time_end, z.top, z.bottom, 'rgba(246,70,93,0.5)', 'OB'); });
+      (data.smc.bull_fvgs || []).forEach(function (z) { addZone(z.time_start, z.time_end, z.top, z.bottom, 'rgba(0,229,199,0.35)', 'FVG'); });
+      (data.smc.bear_fvgs || []).forEach(function (z) { addZone(z.time_start, z.time_end, z.top, z.bottom, 'rgba(246,70,93,0.35)', 'FVG'); });
+    }
+
+    (data.patterns || []).forEach(function (p) {
+      (p.lines || []).forEach(function (line) {
+        if (!line.length) return;
+        const s = chart.addLineSeries({ color: '#F0B90B', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        s.setData(line.map(function (pt) { return { time: pt.time, value: pt.price }; }));
+        s.setMarkers([{ time: line[line.length - 1].time, position: 'inBar', color: '#F0B90B', shape: 'circle', text: p.label, size: 0 }]);
+        extraSeries.push(s);
+      });
+    });
+
+    if (candleSeries._priceLines) {
+      candleSeries._priceLines.forEach(function (pl) { candleSeries.removePriceLine(pl); });
+    }
+    candleSeries._priceLines = [];
+    if (data.trade_levels && data.trade_levels.entry) {
+      const tl = data.trade_levels;
+      candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tl.entry, color: '#00E5C7', lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: 'Вход' }));
+      candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tl.stop, color: '#F6465D', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'SL' }));
+      (tl.targets || []).forEach(function (tp, i) {
+        candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tp, color: '#1FCF6C', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'TP' + (i + 1) }));
+      });
+    }
+
+    chart.timeScale().fitContent();
+  }
+
+  function renderVerdict(setup) {
+    const card = document.getElementById('verdict-card');
+    const dir = document.getElementById('verdict-dir');
+    const icon = document.getElementById('verdict-icon');
+    const conf = document.getElementById('verdict-conf');
+
+    card.className = 'verdict-card';
+    dir.className = 'verdict-dir';
+    if (setup.signal === 'BUY') {
+      card.classList.add('buy'); dir.classList.add('buy'); dir.textContent = 'LONG';
+      icon.innerHTML = '<path d="M5 16L10 10L14 13L19 6" stroke="#1FCF6C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 6H19V11" stroke="#1FCF6C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
+      conf.style.color = '#1FCF6C';
+    } else if (setup.signal === 'SELL') {
+      card.classList.add('sell'); dir.classList.add('sell'); dir.textContent = 'SHORT';
+      icon.innerHTML = '<path d="M5 8L10 14L14 11L19 18" stroke="#F6465D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 18H19V13" stroke="#F6465D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
+      conf.style.color = '#F6465D';
+    } else {
+      dir.classList.add('wait'); dir.textContent = 'НЕЙТРАЛЬНО';
+      icon.innerHTML = '<circle cx="12" cy="12" r="8" stroke="#8A8F9C" stroke-width="1.8"/><path d="M9 12H15" stroke="#8A8F9C" stroke-width="1.8" stroke-linecap="round"/>';
+      conf.style.color = '#8A8F9C';
+    }
+    conf.textContent = setup.confidence + '%';
+  }
+
+  function renderParams(setup) {
+    const el = document.getElementById('params-card');
+    if (setup.signal === 'WAIT' || !setup.entry) {
+      el.innerHTML = '<div class="param-row"><span class="param-label">Сетап</span><span class="param-value">Нет чёткого сигнала</span></div>';
+      return;
+    }
+    const entry = setup.entry;
+    function pctRow(label, value, cls) {
+      if (value === null || value === undefined) return '';
+      const pct = (value / entry - 1) * 100;
+      return '<div class="param-row"><span class="param-label">' + label + '</span><span class="param-value ' + cls + '">$' + fmtPrice(value) + '<span class="pct ' + cls + '">' + fmtPct(pct) + '</span></span></div>';
+    }
+    let html = '<div class="param-row"><span class="param-label">Вход</span><span class="param-value accent">$' + fmtPrice(entry) + '</span></div>';
+    html += pctRow('Стоп-лосс', setup.stop_loss, 'down');
+    (setup.take_profits || []).forEach(function (tp, i) { html += pctRow('TP' + (i + 1), tp, 'up'); });
+    html += '<div class="param-row"><span class="param-label">Risk / Reward</span><span class="param-value accent">' + (setup.risk_reward ? '1 : ' + setup.risk_reward : '—') + '</span></div>';
+    el.innerHTML = html;
+  }
+
+  function renderReasons(reasons) {
+    const el = document.getElementById('reasons-list');
+    if (!reasons || !reasons.length) {
+      el.innerHTML = '<div class="reason-row"><div class="reason-text">Недостаточно факторов для чёткого сигнала.</div></div>';
+      return;
+    }
+    el.innerHTML = reasons.map(function (r) {
+      return '<div class="reason-row"><div class="reason-dot"></div><div class="reason-text">' + r + '</div></div>';
+    }).join('');
+  }
+
+  async function loadAnalysis() {
+    document.getElementById('coin-pair').textContent = currentSymbol;
+    setActiveTf(currentTf);
+    document.getElementById('chart-loading').style.display = 'flex';
+    document.getElementById('content-below').style.display = 'none';
+    document.getElementById('lock-card').style.display = 'none';
+
+    const r = await apiFetch('/api/analysis?' + qs({ symbol: currentSymbol, timeframe: currentTf }));
+
+    if (r.status === 402) {
+      document.getElementById('chart-loading').textContent = 'Доступно по подписке';
+      document.getElementById('lock-card').style.display = 'block';
+      document.getElementById('verdict-dir').textContent = '🔒';
+      document.getElementById('verdict-conf').textContent = '';
+      return;
+    }
+    if (!r.ok || !r.data) {
+      document.getElementById('chart-loading').textContent = 'Не удалось получить данные по ' + currentSymbol;
+      return;
+    }
+
+    const data = r.data;
+    document.getElementById('chart-loading').style.display = 'none';
+    document.getElementById('coin-price').textContent = '$' + fmtPrice(data.price);
+    const chEl = document.getElementById('coin-change');
+    if (data.change_24h !== null) {
+      chEl.textContent = (data.change_24h >= 0 ? '▲ ' : '▼ ') + fmtPct(data.change_24h);
+      chEl.className = 'coin-change ' + (data.change_24h >= 0 ? 'up' : 'down');
+    } else {
+      chEl.textContent = '';
+    }
+
+    renderVerdict(data.setup);
+    buildChart(data);
+    renderParams(data.setup);
+    renderReasons(data.setup.reasons);
+    document.getElementById('content-below').style.display = 'block';
+  }
+
+  document.getElementById('back').addEventListener('click', function () { haptic('light'); goTo('02-main-menu.html'); });
+  document.getElementById('lock-btn').addEventListener('click', function () { haptic('light'); goTo('06-subscription.html'); });
+  document.getElementById('factors-link').addEventListener('click', function (e) {
+    e.preventDefault();
+    haptic('light');
+    goTo('05-factors.html?' + qs({ symbol: currentSymbol, timeframe: currentTf }));
+  });
+
+  document.querySelectorAll('.tf-pill').forEach(function (p) {
+    p.addEventListener('click', function () {
+      haptic('light');
+      currentTf = p.getAttribute('data-tf');
+      loadAnalysis();
+    });
+  });
+
+  function refreshAnalysis() { haptic('medium'); loadAnalysis(); }
+
+  const fallbackBtn = document.getElementById('fallback-main-button');
   if (tg) {
-    tg.ready(); tg.expand(); tg.setBackgroundColor('#000000'); tg.setHeaderColor('#000000');
     tg.MainButton.setParams({ text: 'Обновить анализ', color: '#00E5C7', text_color: '#04342C' });
     tg.MainButton.show();
     tg.MainButton.onClick(refreshAnalysis);
     tg.BackButton.show();
-    tg.BackButton.onClick(function () { window.location.href = '03-screener.html'; });
+    tg.BackButton.onClick(function () { goTo('02-main-menu.html'); });
     fallbackBtn.style.display = 'none';
   } else {
     fallbackBtn.style.display = 'flex';
     fallbackBtn.addEventListener('click', refreshAnalysis);
   }
 
-  document.getElementById('back').addEventListener('click', function () {
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    window.location.href = '03-screener.html';
-  });
+  // Coin picker
+  const pickerOverlay = document.getElementById('picker-overlay');
+  const pickerList = document.getElementById('picker-list');
+  const pickerSearch = document.getElementById('picker-search');
+  let allSymbols = [];
 
-  document.querySelectorAll('.tf-pill').forEach(function (p) {
-    p.addEventListener('click', function () {
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-      document.querySelectorAll('.tf-pill').forEach(function (x) { x.classList.remove('active'); });
-      p.classList.add('active');
-    });
-  });
-
-  function mulberry32(a) {
-    return function () {
-      a |= 0; a = (a + 0x6D2B79F5) | 0;
-      var t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
+  async function openPicker() {
+    haptic('light');
+    pickerOverlay.style.display = 'flex';
+    pickerSearch.value = '';
+    pickerSearch.focus();
+    if (!allSymbols.length) {
+      const r = await apiFetch('/api/symbols');
+      if (r.ok && r.data) allSymbols = r.data.symbols;
+    }
+    renderPickerList(allSymbols);
   }
 
-  function buildChart() {
-    var rnd = mulberry32(42);
-    var svgns = 'http://www.w3.org/2000/svg';
-    var svg = document.getElementById('chart-svg');
-
-    var priceMin = 62000, priceMax = 72500;
-    var plotTop = 16, plotBottom = 152;
-    var volTop = 162, volBottom = 210;
-
-    function y(price) { return plotTop + (priceMax - price) / (priceMax - priceMin) * (plotBottom - plotTop); }
-
-    function el(name, attrs) {
-      var e = document.createElementNS(svgns, name);
-      for (var k in attrs) e.setAttribute(k, attrs[k]);
-      return e;
-    }
-
-    var grid = el('g', {});
-    [64000, 66000, 68000, 70000].forEach(function (gp) {
-      grid.appendChild(el('line', { x1: 0, x2: 400, y1: y(gp), y2: y(gp), stroke: '#14141A', 'stroke-width': 1 }));
+  function renderPickerList(symbols) {
+    pickerList.innerHTML = symbols.map(function (s) {
+      return '<div class="picker-item" data-symbol="' + s.symbol + '">' + s.base + ' <span style="color:var(--text-tertiary);font-weight:400">/USDT</span></div>';
+    }).join('') || '<div class="picker-item" style="color:var(--text-tertiary);font-weight:400">Ничего не найдено</div>';
+    pickerList.querySelectorAll('.picker-item[data-symbol]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        haptic('light');
+        currentSymbol = item.getAttribute('data-symbol');
+        pickerOverlay.style.display = 'none';
+        loadAnalysis();
+      });
     });
-    svg.appendChild(grid);
-
-    var n = 32, gap = 400 / n, bodyW = gap * 0.56;
-    var price = 64350;
-    var candles = [];
-    for (var i = 0; i < n; i++) {
-      var vol = (rnd() - 0.48) * 520;
-      var open = price;
-      var close = open + vol;
-      if (i === n - 1) close = 64512;
-      var high = Math.max(open, close) + rnd() * 220;
-      var low = Math.min(open, close) - rnd() * 220;
-      candles.push({ open: open, close: close, high: high, low: low });
-      price = close;
-    }
-
-    var candleG = el('g', {});
-    candles.forEach(function (c, i) {
-      var cx = i * gap + gap / 2;
-      var up = c.close >= c.open;
-      var color = up ? '#1FCF6C' : '#F6465D';
-      candleG.appendChild(el('line', { x1: cx, x2: cx, y1: y(c.high), y2: y(c.low), stroke: color, 'stroke-width': 1 }));
-      var bodyTop = y(Math.max(c.open, c.close));
-      var bodyH = Math.max(1.5, Math.abs(y(c.open) - y(c.close)));
-      candleG.appendChild(el('rect', { x: cx - bodyW / 2, y: bodyTop, width: bodyW, height: bodyH, fill: color, rx: 0.6 }));
-    });
-    svg.appendChild(candleG);
-
-    var volG = el('g', {});
-    candles.forEach(function (c, i) {
-      var cx = i * gap + gap / 2;
-      var up = c.close >= c.open;
-      var h = 8 + rnd() * (volBottom - volTop - 8);
-      volG.appendChild(el('rect', {
-        x: cx - bodyW / 2, y: volBottom - h, width: bodyW, height: h,
-        fill: up ? 'rgba(31,207,108,0.45)' : 'rgba(246,70,93,0.45)', rx: 0.6
-      }));
-    });
-    svg.appendChild(volG);
-
-    var levels = [
-      { price: 71000, label: 'TP3', color: '#1FCF6C', dash: '4 3' },
-      { price: 68200, label: 'TP2', color: '#1FCF6C', dash: '4 3' },
-      { price: 66500, label: 'TP1', color: '#1FCF6C', dash: '4 3' },
-      { price: 64512, label: 'ВХОД', color: '#00E5C7', dash: '' },
-      { price: 63180, label: 'SL', color: '#F6465D', dash: '4 3' }
-    ];
-    var levelG = el('g', {});
-    levels.forEach(function (lv) {
-      var ly = y(lv.price);
-      var lineAttrs = { x1: 0, x2: 372, y1: ly, y2: ly, stroke: lv.color, 'stroke-width': 1.2 };
-      if (lv.dash) lineAttrs['stroke-dasharray'] = lv.dash;
-      levelG.appendChild(el('line', lineAttrs));
-
-      var badgeW = lv.label.length > 3 ? 34 : 26;
-      levelG.appendChild(el('rect', { x: 400 - badgeW, y: ly - 7, width: badgeW, height: 14, rx: 4, fill: lv.color }));
-      var txt = el('text', { x: 400 - badgeW / 2, y: ly + 3.5, 'text-anchor': 'middle', 'font-size': 8.5, 'font-weight': 700, fill: '#04070A', 'font-family': 'SF Mono, Consolas, monospace' });
-      txt.textContent = lv.label;
-      levelG.appendChild(txt);
-    });
-    svg.appendChild(levelG);
   }
 
-  buildChart();
+  pickerSearch.addEventListener('input', function () {
+    const q = pickerSearch.value.trim().toUpperCase();
+    renderPickerList(allSymbols.filter(function (s) { return s.base.indexOf(q) !== -1; }));
+  });
+
+  document.getElementById('coin-pick').addEventListener('click', openPicker);
+  document.getElementById('picker-close').addEventListener('click', function () { pickerOverlay.style.display = 'none'; });
+  pickerOverlay.addEventListener('click', function (e) { if (e.target === pickerOverlay) pickerOverlay.style.display = 'none'; });
+
+  loadAnalysis();
 </script>
 </body>
 </html>
