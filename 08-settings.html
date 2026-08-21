@@ -52,7 +52,7 @@
 
   <div class="topbar">
     <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <span class="word">Seno · Настройки</span>
+    <span class="word" data-i18n="set_word">Seno · Настройки</span>
   </div>
 
   <div class="profile-card">
@@ -65,22 +65,25 @@
     <span class="profile-badge" id="p-badge">—</span>
   </div>
 
-  <p class="group-title">Торговля</p>
+  <p class="group-title" data-i18n="set_trading">Торговля</p>
   <div class="group-card">
-    <div class="setting-row"><span class="setting-label">Биржа для данных</span><span class="setting-value">Bybit</span></div>
-    <div class="setting-row"><span class="setting-label">Отслеживаемые монеты</span><span class="setting-value" id="watchlist-count">—</span></div>
+    <div class="setting-row"><span class="setting-label" data-i18n="set_exchange">Биржа для данных</span><span class="setting-value">Bybit</span></div>
+    <div class="setting-row"><span class="setting-label" data-i18n="set_watchlist">Отслеживаемые монеты</span><span class="setting-value" id="watchlist-count">—</span></div>
   </div>
 
-  <p class="group-title">Аккаунт</p>
+  <p class="group-title" data-i18n="set_account">Аккаунт</p>
   <div class="group-card">
-    <div class="setting-row"><span class="setting-label">Telegram ID</span><span class="setting-value" id="p-id">—</span></div>
-    <div class="setting-row"><span class="setting-label">Язык</span><span class="setting-value">Русский</span></div>
+    <div class="setting-row"><span class="setting-label" data-i18n="set_tg_id">Telegram ID</span><span class="setting-value" id="p-id">—</span></div>
+    <div class="setting-row">
+      <span class="setting-label" data-i18n="set_lang">Язык</span>
+      <span class="setting-value" id="settings-lang-switch" style="gap:6px;"></span>
+    </div>
   </div>
 
   <div class="footer">
     <svg viewBox="0 0 48 48" fill="none"><rect x="1" y="1" width="46" height="46" rx="13" fill="none" stroke="#F2F4F7" stroke-width="2"/><path d="M11 30L19 22L25 27L37 14" stroke="#F2F4F7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <p class="ver">Seno</p>
-    <p class="disc">Аналитика не является инвестиционной рекомендацией. Торговля криптовалютой сопряжена с риском потери средств.</p>
+    <p class="disc" data-i18n="set_disclaimer">Аналитика не является инвестиционной рекомендацией. Торговля криптовалютой сопряжена с риском потери средств.</p>
   </div>
 
 </div>
@@ -89,29 +92,42 @@
   if (tg) { tg.MainButton.hide(); tg.BackButton.show(); tg.BackButton.onClick(function () { goTo('02-main-menu.html'); }); }
   document.getElementById('back').addEventListener('click', function () { haptic('light'); goTo('02-main-menu.html'); });
 
+  function renderSettingsLangSwitch() {
+    const lang = currentLang();
+    const host = document.getElementById('settings-lang-switch');
+    host.style.display = 'flex';
+    host.innerHTML =
+      '<button type="button" data-lang="ru" style="' + langBtnStyle(lang === 'ru') + '">RU</button>' +
+      '<button type="button" data-lang="en" style="' + langBtnStyle(lang === 'en') + '">EN</button>';
+    host.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () { haptic('light'); setLang(b.getAttribute('data-lang')); });
+    });
+  }
+
   async function load() {
+    renderSettingsLangSwitch();
     const [meRes, symbolsRes] = await Promise.all([apiFetch('/api/me'), apiFetch('/api/symbols')]);
 
     if (meRes.ok && meRes.data) {
       const me = meRes.data;
       document.getElementById('avatar').textContent = (me.first_name || '?').slice(0, 1).toUpperCase();
-      document.getElementById('p-name').textContent = me.first_name || 'Трейдер';
+      document.getElementById('p-name').textContent = me.first_name || t('set_trader');
       document.getElementById('p-username').textContent = me.username ? '@' + me.username : '';
-      document.getElementById('p-date').textContent = me.created_at ? 'На связи с ' + dateRu(me.created_at) : '';
+      document.getElementById('p-date').textContent = me.created_at ? t('set_on_since', { date: dateRu(me.created_at) }) : '';
       document.getElementById('p-id').textContent = me.telegram_id;
       const badge = document.getElementById('p-badge');
       if (me.subscription.active) {
-        badge.textContent = 'Активна';
+        badge.textContent = t('set_active');
         badge.classList.add('active');
       } else {
-        badge.textContent = 'Нет подписки';
+        badge.textContent = t('set_no_sub');
       }
     } else {
-      document.getElementById('p-name').textContent = 'Не удалось загрузить профиль';
+      document.getElementById('p-name').textContent = t('set_no_profile');
     }
 
     if (symbolsRes.ok && symbolsRes.data) {
-      document.getElementById('watchlist-count').textContent = symbolsRes.data.symbols.length + ' монет';
+      document.getElementById('watchlist-count').textContent = t('set_coins', { n: symbolsRes.data.symbols.length });
     }
   }
 

@@ -168,13 +168,13 @@
       <circle cx="37" cy="14" r="3" fill="#00E5C7"/>
     </svg>
     <span class="word">Seno</span>
-    <h1>Скринер</h1>
+    <h1 data-i18n="scr_title">Скринер</h1>
   </header>
 
   <div class="segment">
-    <button class="active" data-cat="scalping">Скальпинг</button>
-    <button data-cat="swing">Дневная</button>
-    <button data-cat="position">Долгосрочная</button>
+    <button class="active" data-cat="scalping" data-i18n="scr_seg_scalping">Скальпинг</button>
+    <button data-cat="swing" data-i18n="scr_seg_swing">Дневная</button>
+    <button data-cat="position" data-i18n="scr_seg_position">Долгосрочная</button>
   </div>
 
   <div class="toolbar">
@@ -196,13 +196,13 @@
   <div class="list" id="list" style="display: none;"></div>
   <div class="lock-card" id="lock-card" style="display: none;">
     <p id="lock-text"></p>
-    <button class="lock-btn" id="lock-btn">Оформить подписку</button>
+    <button class="lock-btn" id="lock-btn" data-i18n="scr_lock_btn">Оформить подписку</button>
   </div>
 
   <div class="empty-state" id="empty">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="#5A5F6B" stroke-width="1.6"/><path d="M20 20L15.5 15.5" stroke="#5A5F6B" stroke-width="1.6" stroke-linecap="round"/><path d="M7.5 13.5L13.5 7.5" stroke="#5A5F6B" stroke-width="1.4" stroke-linecap="round"/></svg>
-    <p class="t">Сигналов не найдено</p>
-    <p class="d">Рынок в боковике — попробуйте другую категорию или обновите позже</p>
+    <p class="t" data-i18n="scr_empty_t">Сигналов не найдено</p>
+    <p class="d" data-i18n="scr_empty_d">Рынок в боковике — попробуйте другую категорию или обновите позже</p>
   </div>
 
 </div>
@@ -257,7 +257,7 @@
     }
 
     const data = r.data;
-    cacheNote.textContent = data.cache_age_seconds !== null ? 'Обновлено ' + timeAgoRu(data.cache_age_seconds) : '';
+    cacheNote.textContent = data.cache_age_seconds !== null ? t('scr_updated_prefix') + ' ' + timeAgoRu(data.cache_age_seconds) : '';
 
     if (!data.rows.length) {
       emptyEl.style.display = 'flex';
@@ -270,7 +270,7 @@
     if (data.locked) {
       const hidden = data.total - data.rows.length;
       document.getElementById('lock-text').textContent =
-        'Показаны ' + data.rows.length + ' из ' + data.total + ' сигналов. Ещё ' + hidden + ' — по подписке.';
+        t('scr_lock_text', { shown: data.rows.length, total: data.total, hidden: hidden });
       lockCard.style.display = 'block';
     }
   }

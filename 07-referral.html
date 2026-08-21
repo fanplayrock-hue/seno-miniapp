@@ -93,15 +93,15 @@
 
   <div class="topbar">
     <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <span class="word">Seno · Рефералы</span>
+    <span class="word" data-i18n="ref_word">Seno · Рефералы</span>
   </div>
 
-  <div class="hero"><div class="amount" id="hero-amount">—</div><div class="amount-lbl">Заработано всего</div></div>
+  <div class="hero"><div class="amount" id="hero-amount">—</div><div class="amount-lbl" data-i18n="ref_earned">Заработано всего</div></div>
 
   <div class="counters">
-    <div class="counter"><div class="cv" id="c-invited">—</div><div class="cl">Приглашено</div></div>
-    <div class="counter"><div class="cv" id="c-paid">—</div><div class="cl">Оплатили</div></div>
-    <div class="counter"><div class="cv" id="c-available">—</div><div class="cl">Доступно к выводу</div></div>
+    <div class="counter"><div class="cv" id="c-invited">—</div><div class="cl" data-i18n="ref_invited">Приглашено</div></div>
+    <div class="counter"><div class="cv" id="c-paid">—</div><div class="cl" data-i18n="ref_paid">Оплатили</div></div>
+    <div class="counter"><div class="cv" id="c-available">—</div><div class="cl" data-i18n="ref_available">Доступно к выводу</div></div>
   </div>
 
   <div class="link-card">
@@ -111,26 +111,26 @@
         <svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="#F2F4F7" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="#F2F4F7" stroke-width="1.6"/></svg>
       </button>
     </div>
-    <button class="share-btn" id="share-btn">Поделиться</button>
+    <button class="share-btn" id="share-btn" data-i18n="ref_share_btn">Поделиться</button>
   </div>
 
-  <p class="section-title" style="margin-top:18px">Как это работает</p>
+  <p class="section-title" style="margin-top:18px" data-i18n="ref_how">Как это работает</p>
   <div class="steps">
-    <div class="step-row"><div class="step-num">1</div><div class="step-text">Приглашаете друга по <b>реферальной ссылке</b></div></div>
-    <div class="step-row"><div class="step-num">2</div><div class="step-text">Друг оформляет <b>подписку Seno</b></div></div>
-    <div class="step-row"><div class="step-num">3</div><div class="step-text">Вы получаете <b id="reward-pct">40%</b> с каждой его оплаты, включая продления</div></div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-text" data-i18n="ref_step1">Приглашаете друга по <b>реферальной ссылке</b></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text" data-i18n="ref_step2">Друг оформляет <b>подписку Seno</b></div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text" id="step3-text">Вы получаете <b id="reward-pct">40%</b> с каждой его оплаты, включая продления</div></div>
   </div>
 
   <div class="payout-progress">
-    <div class="pp-label"><span class="l1">Условие для вывода</span><span class="l2" id="pp-fraction">— из —</span></div>
+    <div class="pp-label"><span class="l1" data-i18n="ref_condition">Условие для вывода</span><span class="l2" id="pp-fraction">— из —</span></div>
     <div class="pp-track"><div class="pp-fill" id="pp-fill" style="width:0%;background:var(--down)"></div></div>
     <p class="pp-note" id="pp-note"></p>
   </div>
 
-  <p class="section-title">Приглашённые</p>
-  <div class="invited-list" id="invited-list"><p class="empty-hint">Загрузка…</p></div>
+  <p class="section-title" data-i18n="ref_invited_title">Приглашённые</p>
+  <div class="invited-list" id="invited-list"><p class="empty-hint" data-i18n="loading">Загрузка…</p></div>
 
-  <button id="fallback-main-button">Запросить выплату</button>
+  <button id="fallback-main-button" data-i18n="ref_payout_btn">Запросить выплату</button>
 </div>
 
 <script>
@@ -154,13 +154,13 @@
       load();
     } else {
       notify('error');
-      alert((r.data && r.data.message) || 'Не удалось создать заявку.');
+      alert((r.data && r.data.message) || t('ref_payout_failed'));
     }
   }
 
   function setMainButton(enabled) {
     if (tg) {
-      tg.MainButton.setParams({ text: 'Запросить выплату', color: enabled ? '#00E5C7' : '#131318', text_color: enabled ? '#04342C' : '#5A5F6B' });
+      tg.MainButton.setParams({ text: t('ref_payout_btn'), color: enabled ? '#00E5C7' : '#131318', text_color: enabled ? '#04342C' : '#5A5F6B' });
       tg.MainButton.show();
       tg.MainButton.offClick(requestPayout);
       if (enabled) tg.MainButton.onClick(requestPayout);
@@ -175,7 +175,7 @@
   async function load() {
     const r = await apiFetch('/api/referral/stats');
     if (!r.ok || !r.data) {
-      document.getElementById('invited-list').innerHTML = '<p class="empty-hint">Не удалось загрузить данные. Откройте через Telegram.</p>';
+      document.getElementById('invited-list').innerHTML = '<p class="empty-hint">' + t('ref_load_error') + '</p>';
       setMainButton(false);
       return;
     }
@@ -186,7 +186,8 @@
     document.getElementById('c-invited').textContent = d.invited;
     document.getElementById('c-paid').textContent = d.paid_referrals;
     document.getElementById('c-available').textContent = fmtUsd(d.available_usd);
-    document.getElementById('pp-fraction').textContent = d.paid_referrals + ' из ' + d.min_paid_referrals;
+    document.getElementById('pp-fraction').textContent = t('ref_of', { a: d.paid_referrals, b: d.min_paid_referrals });
+    document.getElementById('step3-text').innerHTML = t('ref_step3', { pct: '<b id="reward-pct">' + d.reward_percent + '%</b>' });
 
     const pct = Math.min(100, (d.paid_referrals / d.min_paid_referrals) * 100);
     const fill = document.getElementById('pp-fill');
@@ -194,18 +195,18 @@
     fill.style.background = d.can_request_payout ? 'var(--up)' : 'var(--warn)';
 
     document.getElementById('pp-note').textContent = d.can_request_payout
-      ? 'Условие выполнено — доступен вывод от ' + d.min_paid_referrals + ' оплативших рефералов'
-      : 'Осталось ' + Math.max(0, d.min_paid_referrals - d.paid_referrals) + ' оплативших рефералов до вывода (минимум $' + d.min_payout_usd.toFixed(0) + ' на балансе)';
+      ? t('ref_note_ok', { n: d.min_paid_referrals })
+      : t('ref_note_pending', { left: Math.max(0, d.min_paid_referrals - d.paid_referrals), min: d.min_payout_usd.toFixed(0) });
 
     const listEl = document.getElementById('invited-list');
     if (!d.invited_list.length) {
-      listEl.innerHTML = '<p class="empty-hint">Пока никого не пригласили — поделитесь ссылкой выше</p>';
+      listEl.innerHTML = '<p class="empty-hint">' + t('ref_invited_empty') + '</p>';
     } else {
       listEl.innerHTML = d.invited_list.map(function (u) {
         const name = u.first_name || u.username || ('ID ' + u.telegram_id);
         return '<div class="invited-row"><div class="inv-avatar">' + initials(name) + '</div>' +
           '<div class="inv-info"><div class="inv-name">' + name + '</div><div class="inv-date">' + dateRu(u.created_at) + '</div></div>' +
-          '<div class="inv-right"><div class="inv-status ' + (u.paid ? 'paid' : 'unpaid') + '">' + (u.paid ? 'Оплатил' : 'Не оплатил') + '</div>' +
+          '<div class="inv-right"><div class="inv-status ' + (u.paid ? 'paid' : 'unpaid') + '">' + (u.paid ? t('ref_paid_status') : t('ref_unpaid_status')) + '</div>' +
           '<div class="inv-amount">' + (u.paid ? fmtUsd(u.reward_usd) : '—') + '</div></div></div>';
       }).join('');
     }
@@ -227,7 +228,7 @@
   document.getElementById('share-btn').addEventListener('click', function () {
     haptic('light');
     if (!refLink) return;
-    const shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(refLink) + '&text=' + encodeURIComponent('Присоединяйся к Seno — технический анализ крипты с готовыми сетапами');
+    const shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(refLink) + '&text=' + encodeURIComponent(t('ref_share_text'));
     if (tg && tg.openTelegramLink) { tg.openTelegramLink(shareUrl); } else { window.open(shareUrl, '_blank'); }
   });
 

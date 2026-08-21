@@ -83,56 +83,56 @@
 
   <div class="topbar">
     <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <span class="word">Seno · Подписка</span>
+    <span class="word" data-i18n="sub_word">Seno · Подписка</span>
   </div>
 
   <div class="active-card" id="active-card">
-    <p class="lbl">Статус подписки</p>
-    <p class="status">Подписка Seno активна</p>
-    <div class="active-row"><span class="k">Действует до</span><span class="v" id="active-until">—</span></div>
-    <div class="active-row"><span class="k">Осталось дней</span><span class="v" id="active-days">—</span></div>
+    <p class="lbl" data-i18n="sub_status_label">Статус подписки</p>
+    <p class="status" data-i18n="sub_active_status">Подписка Seno активна</p>
+    <div class="active-row"><span class="k" data-i18n="sub_until">Действует до</span><span class="v" id="active-until">—</span></div>
+    <div class="active-row"><span class="k" data-i18n="sub_days_left">Осталось дней</span><span class="v" id="active-days">—</span></div>
   </div>
 
   <div class="tariff-card" id="tariff-card">
-    <div class="price-row"><span class="price-num" id="price-num">$59</span><span class="price-period">в месяц</span></div>
+    <div class="price-row"><span class="price-num" id="price-num">$59</span><span class="price-period" data-i18n="sub_period">в месяц</span></div>
     <div class="feature-list">
-      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Скринер по всему рынку, 3 таймфрейма</span></div>
-      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Неограниченный анализ монет</span></div>
-      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Точки входа, стоп-лосс и тейк-профиты</span></div>
-      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Разбор факторов по каждому сигналу</span></div>
-      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Данные с Bybit, OKX и Binance</span></div>
+      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-i18n="sub_feat1">Скринер по всему рынку, 3 таймфрейма</span></div>
+      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-i18n="sub_feat2">Неограниченный анализ монет</span></div>
+      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-i18n="sub_feat3">Точки входа, стоп-лосс и тейк-профиты</span></div>
+      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-i18n="sub_feat4">Разбор факторов по каждому сигналу</span></div>
+      <div class="feature-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#00E5C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-i18n="sub_feat5">Данные с Bybit, OKX и Binance</span></div>
     </div>
   </div>
 
   <div id="pay-section" style="display:none">
-    <p class="section-title">Способ оплаты</p>
+    <p class="section-title" data-i18n="sub_pay_method">Способ оплаты</p>
     <div class="pay-methods" id="pay-methods"></div>
 
     <div class="invoice-card" id="invoice-card">
       <p id="invoice-text"></p>
-      <a class="invoice-btn primary" id="pay-link" href="#" target="_blank">💳 Оплатить</a>
-      <button class="invoice-btn secondary" id="check-btn">🔄 Проверить оплату</button>
+      <a class="invoice-btn primary" id="pay-link" href="#" target="_blank" data-i18n="sub_pay_btn">💳 Оплатить</a>
+      <button class="invoice-btn secondary" id="check-btn" data-i18n="sub_check_btn">🔄 Проверить оплату</button>
     </div>
 
     <div class="trust-line">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L20 7V12C20 16.5 16.5 20.2 12 21C7.5 20.2 4 16.5 4 12V7L12 3Z" stroke="#5A5F6B" stroke-width="1.4"/></svg>
-      Оплата проходит через CryptoBot · Доступ открывается автоматически
+      <span data-i18n="sub_trust">Оплата проходит через CryptoBot · Доступ открывается автоматически</span>
     </div>
   </div>
 
-  <p class="section-title">Частые вопросы</p>
+  <p class="section-title" data-i18n="sub_faq_title">Частые вопросы</p>
   <div id="faq">
     <div class="faq-item">
-      <div class="faq-q"><span>Что будет после окончания подписки?</span><svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="#8A8F9C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="faq-a"><p>Доступ к скринеру и анализу закроется, но история и настройки сохранятся — при продлении всё вернётся как было.</p></div>
+      <div class="faq-q"><span data-i18n="sub_faq_q1">Что будет после окончания подписки?</span><svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="#8A8F9C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="faq-a"><p data-i18n="sub_faq_a1">Доступ к скринеру и анализу закроется, но история и настройки сохранятся — при продлении всё вернётся как было.</p></div>
     </div>
     <div class="faq-item">
-      <div class="faq-q"><span>Можно ли вернуть деньги?</span><svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="#8A8F9C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="faq-a"><p>Оплата через крипто-платёжные системы необратима по их правилам — это особенность блокчейн-платежей, а не наше ограничение.</p></div>
+      <div class="faq-q"><span data-i18n="sub_faq_q2">Можно ли вернуть деньги?</span><svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="#8A8F9C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="faq-a"><p data-i18n="sub_faq_a2">Оплата через крипто-платёжные системы необратима по их правилам — это особенность блокчейн-платежей, а не наше ограничение.</p></div>
     </div>
     <div class="faq-item">
-      <div class="faq-q"><span>Работает ли на телефоне?</span><svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="#8A8F9C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="faq-a"><p>Да, Seno работает прямо внутри Telegram на любом устройстве — отдельно устанавливать ничего не нужно.</p></div>
+      <div class="faq-q"><span data-i18n="sub_faq_q3">Работает ли на телефоне?</span><svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="#8A8F9C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="faq-a"><p data-i18n="sub_faq_a3">Да, Seno работает прямо внутри Telegram на любом устройстве — отдельно устанавливать ничего не нужно.</p></div>
     </div>
   </div>
 
@@ -183,20 +183,20 @@
       document.getElementById('active-until').textContent = exp.toLocaleDateString('ru-RU') + ' ' + exp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
       const days = Math.max(0, Math.ceil((exp - new Date()) / 86400000));
       document.getElementById('active-days').textContent = days;
-      setMainButtonAction('Продлить подписку', true, function () { startPayment(); });
+      setMainButtonAction(t('sub_renew_btn'), true, function () { startPayment(); });
     } else {
       document.getElementById('active-card').style.display = 'none';
       document.getElementById('tariff-card').style.display = 'block';
       document.getElementById('pay-section').style.display = 'block';
       renderProviders(data.providers);
-      setMainButtonAction('Оплатить $' + data.price_usd.toFixed(0), !!selectedProvider, startPayment);
+      setMainButtonAction(t('sub_pay_amount_btn', { amount: data.price_usd.toFixed(0) }), !!selectedProvider, startPayment);
     }
   }
 
   function renderProviders(providers) {
     const el = document.getElementById('pay-methods');
     if (!providers.length) {
-      el.innerHTML = '<p style="grid-column:1/-1;font-size:12.5px;color:var(--text-tertiary)">Оплата временно недоступна — ни один способ не настроен.</p>';
+      el.innerHTML = '<p style="grid-column:1/-1;font-size:12.5px;color:var(--text-tertiary)">' + t('sub_no_providers') + '</p>';
       return;
     }
     el.innerHTML = providers.map(function (p, i) {
@@ -220,11 +220,11 @@
     const r = await apiFetch('/api/subscription/invoice', { method: 'POST', body: JSON.stringify({ provider: selectedProvider }) });
     if (!r.ok || !r.data) {
       notify('error');
-      alert('Не удалось создать счёт. Попробуйте другой способ оплаты позже.');
+      alert(t('sub_invoice_failed'));
       return;
     }
     currentInvoice = r.data;
-    document.getElementById('invoice-text').textContent = 'Счёт на $' + currentInvoice.amount.toFixed(0) + ' создан. После оплаты нажмите «Проверить оплату».';
+    document.getElementById('invoice-text').textContent = t('sub_invoice_text', { amount: currentInvoice.amount.toFixed(0) });
     document.getElementById('pay-link').href = currentInvoice.pay_url;
     document.getElementById('invoice-card').style.display = 'block';
     if (tg && tg.openLink) tg.openLink(currentInvoice.pay_url);
@@ -241,10 +241,10 @@
       loadStatus();
     } else if (r.data.invoice_status === 'expired') {
       notify('error');
-      alert('Счёт истёк. Создайте новый.');
+      alert(t('sub_invoice_expired'));
       document.getElementById('invoice-card').style.display = 'none';
     } else {
-      alert('Оплата пока не найдена. Если вы уже оплатили — подождите немного и попробуйте ещё раз.');
+      alert(t('sub_payment_not_found'));
     }
   }
 

@@ -74,8 +74,8 @@
     <div class="factor-list" id="factor-list"></div>
 
     <div class="lock-card" id="lock-card" style="display:none">
-      <p>Полный разбор всех факторов доступен по подписке.</p>
-      <button class="lock-btn" id="lock-btn">Оформить подписку — $59/мес</button>
+      <p data-i18n="fa_lock_text">Полный разбор всех факторов доступен по подписке.</p>
+      <button class="lock-btn" id="lock-btn" data-i18n="fa_lock_btn">Оформить подписку — $59/мес</button>
     </div>
   </div>
 
@@ -91,7 +91,7 @@
     haptic('light');
     goTo('04-analysis.html?' + qs({ symbol, timeframe }));
   });
-  document.getElementById('topbar-title').textContent = 'Seno · Факторы — ' + symbol + ' · ' + timeframe;
+  document.getElementById('topbar-title').textContent = t('fa_word') + ' — ' + symbol + ' · ' + timeframe;
 
   const DIR_ARROW = { UP: '🟢▲', DOWN: '🔴▼' };
 
@@ -101,23 +101,26 @@
 
     if (r.status === 402) {
       document.getElementById('content').style.display = 'block';
-      document.getElementById('summary-line').textContent = 'Разбор факторов доступен по подписке.';
+      document.getElementById('summary-line').textContent = t('fa_lock_text');
       document.getElementById('lock-card').style.display = 'block';
       return;
     }
     if (!r.ok || !r.data) {
-      document.getElementById('content').innerHTML = '<p style="color:var(--text-tertiary);font-size:13px">Не удалось загрузить факторы.</p>';
+      document.getElementById('content').innerHTML = '<p style="color:var(--text-tertiary);font-size:13px">' + t('fa_load_error') + '</p>';
       document.getElementById('content').style.display = 'block';
       return;
     }
 
     const data = r.data;
     document.getElementById('content').style.display = 'block';
-    document.getElementById('summary-dir').textContent = data.signal === 'BUY' ? 'LONG' : data.signal === 'SELL' ? 'SHORT' : 'НЕЙТРАЛЬНО';
+    document.getElementById('summary-dir').textContent = data.signal === 'BUY' ? t('fa_long') : data.signal === 'SELL' ? t('fa_short') : t('fa_neutral');
     document.getElementById('summary-dir').style.color = data.signal === 'BUY' ? '#1FCF6C' : data.signal === 'SELL' ? '#F6465D' : '#8A8F9C';
-    document.getElementById('summary-conf').textContent = 'уверенность ' + data.confidence + '%';
-    document.getElementById('summary-line').innerHTML =
-      'Активных факторов: <b>' + data.total + '</b> · <b style="color:#1FCF6C">' + data.up_count + ' за рост</b> · <b style="color:#F6465D">' + data.down_count + ' за падение</b>';
+    document.getElementById('summary-conf').textContent = t('an_conf_label') + ' ' + data.confidence + '%';
+    document.getElementById('summary-line').innerHTML = t('fa_summary', {
+      total: '<b>' + data.total + '</b>',
+      up: '<b style="color:#1FCF6C">' + data.up_count + ' ' + t('fa_up_word') + '</b>',
+      down: '<b style="color:#F6465D">' + data.down_count + ' ' + t('fa_down_word') + '</b>',
+    });
     const total = Math.max(1, data.total);
     document.getElementById('ratio-up').style.width = (data.up_count / total * 100) + '%';
     document.getElementById('ratio-down').style.width = (data.down_count / total * 100) + '%';

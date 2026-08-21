@@ -249,14 +249,14 @@
     <div class="market-item"><div class="skeleton" style="height:40px"></div></div>
   </div>
 
-  <p class="section-title">Сигналы сейчас</p>
+  <p class="section-title" data-i18n="menu_signals">Сигналы сейчас</p>
   <div class="signals-scroll" id="signals-scroll">
     <div class="signal-card"><div class="skeleton" style="height:60px"></div></div>
     <div class="signal-card"><div class="skeleton" style="height:60px"></div></div>
     <div class="signal-card"><div class="skeleton" style="height:60px"></div></div>
   </div>
 
-  <p class="section-title">Разделы</p>
+  <p class="section-title" data-i18n="menu_sections">Разделы</p>
   <div class="grid-2x2">
     <div class="section-card" data-nav="03-screener.html">
       <div class="section-icon">
@@ -266,8 +266,8 @@
         </svg>
       </div>
       <div>
-        <p class="st">Скринер</p>
-        <p class="sd">Поиск сетапов по рынку</p>
+        <p class="st" data-i18n="menu_screener_t">Скринер</p>
+        <p class="sd" data-i18n="menu_screener_d">Поиск сетапов по рынку</p>
       </div>
     </div>
 
@@ -279,8 +279,8 @@
         </svg>
       </div>
       <div>
-        <p class="st">Анализ</p>
-        <p class="sd">Разбор конкретной монеты</p>
+        <p class="st" data-i18n="menu_analysis_t">Анализ</p>
+        <p class="sd" data-i18n="menu_analysis_d">Разбор конкретной монеты</p>
       </div>
     </div>
 
@@ -294,8 +294,8 @@
         </svg>
       </div>
       <div>
-        <p class="st">Рефералы</p>
-        <p class="sd">40% с каждого приглашённого</p>
+        <p class="st" data-i18n="menu_referral_t">Рефералы</p>
+        <p class="sd" data-i18n="menu_referral_d">40% с каждого приглашённого</p>
       </div>
     </div>
 
@@ -307,8 +307,8 @@
         </svg>
       </div>
       <div>
-        <p class="st">Подписка</p>
-        <p class="sd">Управление доступом</p>
+        <p class="st" data-i18n="menu_subscription_t">Подписка</p>
+        <p class="sd" data-i18n="menu_subscription_d">Управление доступом</p>
       </div>
     </div>
   </div>
@@ -331,17 +331,17 @@
     const badge = document.getElementById('sub-badge');
     const avatar = document.getElementById('avatar');
     if (!r.ok || !r.data) {
-      badge.textContent = 'Гость';
+      badge.textContent = t('menu_guest');
       return;
     }
     const me = r.data;
     avatar.textContent = (me.first_name || '?').slice(0, 1).toUpperCase();
     if (me.subscription.active) {
       const days = Math.max(0, Math.ceil((new Date(me.subscription.expires_at) - new Date()) / 86400000));
-      badge.textContent = 'Активна · ' + days + ' дн.';
+      badge.textContent = t('menu_sub_active', { n: days });
       badge.className = 'sub-badge ' + (days <= 3 ? 'warn' : 'active');
     } else {
-      badge.textContent = 'Нет подписки';
+      badge.textContent = t('menu_sub_none');
       badge.className = 'sub-badge';
     }
   }
@@ -350,19 +350,19 @@
     const r = await apiFetch('/api/market-context');
     const el = document.getElementById('market-card');
     if (!r.ok || !r.data) {
-      el.innerHTML = '<p class="empty-hint">Не удалось загрузить рыночный контекст</p>';
+      el.innerHTML = '<p class="empty-hint">' + t('menu_load_error') + '</p>';
       return;
     }
     const fg = r.data.fear_greed;
     const dom = r.data.btc_dominance;
     el.innerHTML =
-      '<div class="market-item"><p class="market-label">Индекс страха и жадности</p>' +
+      '<div class="market-item"><p class="market-label">' + t('menu_fng') + '</p>' +
       (fg
         ? '<div class="fng-row"><span class="fng-value">' + fg.value + '</span><span class="fng-class">' + fg.classification + '</span></div>' +
           '<div class="fng-scale"><div class="fng-marker" style="left:' + fg.value + '%"></div></div>'
         : '<p class="empty-hint">—</p>') +
       '</div><div class="divider-v"></div>' +
-      '<div class="market-item"><p class="market-label">Доминация BTC</p>' +
+      '<div class="market-item"><p class="market-label">' + t('menu_dom') + '</p>' +
       '<div class="dom-value">' + (dom !== null ? dom + '%' : '—') + '</div></div>';
   }
 
@@ -370,7 +370,7 @@
     const r = await apiFetch('/api/screener?category=scalping');
     const el = document.getElementById('signals-scroll');
     if (!r.ok || !r.data || !r.data.rows.length) {
-      el.innerHTML = '<p class="empty-hint">Пока нет уверенных сигналов — рынок в боковике</p>';
+      el.innerHTML = '<p class="empty-hint">' + t('menu_empty_signals') + '</p>';
       return;
     }
     el.innerHTML = r.data.rows.slice(0, 4).map(function (row) {
@@ -392,7 +392,7 @@
   loadMe();
   loadMarketContext();
   loadSignals();
-  document.getElementById('updated-at').textContent = 'Обновлено только что';
+  document.getElementById('updated-at').textContent = t('menu_updated');
 </script>
 </body>
 </html>

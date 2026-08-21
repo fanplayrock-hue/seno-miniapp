@@ -119,7 +119,7 @@
 
   <div class="topbar">
     <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <span class="word">Seno · Анализ</span>
+    <span class="word" data-i18n="an_word">Seno · Анализ</span>
   </div>
 
   <div class="coin-header">
@@ -132,11 +132,11 @@
       <span class="coin-change" id="coin-change"></span>
     </div>
     <div class="tf-pills" id="tf-pills">
-      <span class="tf-pill" data-tf="5m">5м</span>
-      <span class="tf-pill" data-tf="15m">15м</span>
-      <span class="tf-pill" data-tf="1h">1ч</span>
-      <span class="tf-pill active" data-tf="4h">4ч</span>
-      <span class="tf-pill" data-tf="1d">1д</span>
+      <span class="tf-pill" data-tf="5m">5m</span>
+      <span class="tf-pill" data-tf="15m">15m</span>
+      <span class="tf-pill" data-tf="1h">1h</span>
+      <span class="tf-pill active" data-tf="4h">4h</span>
+      <span class="tf-pill" data-tf="1d">1d</span>
     </div>
   </div>
 
@@ -145,18 +145,18 @@
       <svg id="verdict-icon" viewBox="0 0 24 24" fill="none"></svg>
       <div>
         <p class="verdict-dir" id="verdict-dir">—</p>
-        <p class="verdict-sub">Сетап по confluence-факторам</p>
+        <p class="verdict-sub" data-i18n="an_verdict_sub">Сетап по confluence-факторам</p>
       </div>
     </div>
     <div class="verdict-conf">
       <div class="num" id="verdict-conf">—</div>
-      <div class="lbl">уверенность</div>
+      <div class="lbl" data-i18n="an_conf_label">уверенность</div>
     </div>
   </div>
 
   <div class="chart-wrap">
     <div id="chart-container"></div>
-    <div class="chart-loading" id="chart-loading">Загружаю график…</div>
+    <div class="chart-loading" id="chart-loading" data-i18n="an_chart_loading">Загружаю график…</div>
     <svg class="watermark" viewBox="0 0 48 48" fill="none">
       <rect x="1" y="1" width="46" height="46" rx="13" fill="#0B0B0E" stroke="#F2F4F7" stroke-width="1.5"/>
       <path d="M11 30L19 22L25 27L37 14" stroke="#F2F4F7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -167,27 +167,27 @@
     <div class="params-card" id="params-card"></div>
 
     <div class="reasons-card">
-      <p class="reasons-title">Почему такой сигнал</p>
+      <p class="reasons-title" data-i18n="an_reasons_title">Почему такой сигнал</p>
       <div id="reasons-list"></div>
-      <a class="factors-link" href="#" id="factors-link">Все факторы →</a>
+      <a class="factors-link" href="#" id="factors-link" data-i18n="an_factors_link">Все факторы →</a>
     </div>
 
-    <p class="disclaimer">⚠️ Не является инвестиционной рекомендацией</p>
+    <p class="disclaimer" data-i18n="an_disclaimer">⚠️ Не является инвестиционной рекомендацией</p>
   </div>
 
   <div class="lock-card" id="lock-card" style="display:none">
-    <p id="lock-text">Полный анализ этой монеты доступен по подписке. Бесплатно можно посмотреть BTC/USDT на 4ч.</p>
-    <button class="lock-btn" id="lock-btn">Оформить подписку — $59/мес</button>
+    <p id="lock-text" data-i18n="an_lock_text">Полный анализ этой монеты доступен по подписке. Бесплатно можно посмотреть BTC/USDT на 4ч.</p>
+    <button class="lock-btn" id="lock-btn" data-i18n="an_lock_btn">Оформить подписку — $59/мес</button>
   </div>
 
-  <button id="fallback-main-button">Обновить анализ</button>
+  <button id="fallback-main-button" data-i18n="an_main_btn">Обновить анализ</button>
 </div>
 
 <div class="picker-overlay" id="picker-overlay">
   <div class="picker-sheet">
-    <input class="picker-search" id="picker-search" placeholder="Найти монету, например BTC" />
+    <input class="picker-search" id="picker-search" data-i18n-placeholder="an_picker_search" placeholder="Найти монету, например BTC" />
     <div class="picker-list" id="picker-list"></div>
-    <div class="picker-close" id="picker-close">Закрыть</div>
+    <div class="picker-close" id="picker-close" data-i18n="close">Закрыть</div>
   </div>
 </div>
 
@@ -306,7 +306,7 @@
     candleSeries._priceLines = [];
     if (data.trade_levels && data.trade_levels.entry) {
       const tl = data.trade_levels;
-      candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tl.entry, color: '#00E5C7', lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: 'Вход' }));
+      candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tl.entry, color: '#00E5C7', lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: t('an_entry') }));
       candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tl.stop, color: '#F6465D', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'SL' }));
       (tl.targets || []).forEach(function (tp, i) {
         candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tp, color: '#1FCF6C', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'TP' + (i + 1) }));
@@ -333,7 +333,7 @@
       icon.innerHTML = '<path d="M5 8L10 14L14 11L19 18" stroke="#F6465D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 18H19V13" stroke="#F6465D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
       conf.style.color = '#F6465D';
     } else {
-      dir.classList.add('wait'); dir.textContent = 'НЕЙТРАЛЬНО';
+      dir.classList.add('wait'); dir.textContent = t('an_wait');
       icon.innerHTML = '<circle cx="12" cy="12" r="8" stroke="#8A8F9C" stroke-width="1.8"/><path d="M9 12H15" stroke="#8A8F9C" stroke-width="1.8" stroke-linecap="round"/>';
       conf.style.color = '#8A8F9C';
     }
@@ -343,7 +343,7 @@
   function renderParams(setup) {
     const el = document.getElementById('params-card');
     if (setup.signal === 'WAIT' || !setup.entry) {
-      el.innerHTML = '<div class="param-row"><span class="param-label">Сетап</span><span class="param-value">Нет чёткого сигнала</span></div>';
+      el.innerHTML = '<div class="param-row"><span class="param-label">' + t('an_setup_label') + '</span><span class="param-value">' + t('an_no_setup') + '</span></div>';
       return;
     }
     const entry = setup.entry;
@@ -352,17 +352,17 @@
       const pct = (value / entry - 1) * 100;
       return '<div class="param-row"><span class="param-label">' + label + '</span><span class="param-value ' + cls + '">$' + fmtPrice(value) + '<span class="pct ' + cls + '">' + fmtPct(pct) + '</span></span></div>';
     }
-    let html = '<div class="param-row"><span class="param-label">Вход</span><span class="param-value accent">$' + fmtPrice(entry) + '</span></div>';
-    html += pctRow('Стоп-лосс', setup.stop_loss, 'down');
+    let html = '<div class="param-row"><span class="param-label">' + t('an_entry') + '</span><span class="param-value accent">$' + fmtPrice(entry) + '</span></div>';
+    html += pctRow(t('an_stop'), setup.stop_loss, 'down');
     (setup.take_profits || []).forEach(function (tp, i) { html += pctRow('TP' + (i + 1), tp, 'up'); });
-    html += '<div class="param-row"><span class="param-label">Risk / Reward</span><span class="param-value accent">' + (setup.risk_reward ? '1 : ' + setup.risk_reward : '—') + '</span></div>';
+    html += '<div class="param-row"><span class="param-label">' + t('an_rr') + '</span><span class="param-value accent">' + (setup.risk_reward ? '1 : ' + setup.risk_reward : '—') + '</span></div>';
     el.innerHTML = html;
   }
 
   function renderReasons(reasons) {
     const el = document.getElementById('reasons-list');
     if (!reasons || !reasons.length) {
-      el.innerHTML = '<div class="reason-row"><div class="reason-text">Недостаточно факторов для чёткого сигнала.</div></div>';
+      el.innerHTML = '<div class="reason-row"><div class="reason-text">' + t('an_reasons_empty') + '</div></div>';
       return;
     }
     el.innerHTML = reasons.map(function (r) {
@@ -380,14 +380,14 @@
     const r = await apiFetch('/api/analysis?' + qs({ symbol: currentSymbol, timeframe: currentTf }));
 
     if (r.status === 402) {
-      document.getElementById('chart-loading').textContent = 'Доступно по подписке';
+      document.getElementById('chart-loading').textContent = t('an_locked_title');
       document.getElementById('lock-card').style.display = 'block';
-      document.getElementById('verdict-dir').textContent = '🔒';
+      document.getElementById('verdict-dir').textContent = t('an_locked_short');
       document.getElementById('verdict-conf').textContent = '';
       return;
     }
     if (!r.ok || !r.data) {
-      document.getElementById('chart-loading').textContent = 'Не удалось получить данные по ' + currentSymbol;
+      document.getElementById('chart-loading').textContent = t('an_no_data', { symbol: currentSymbol });
       return;
     }
 
@@ -429,7 +429,7 @@
 
   const fallbackBtn = document.getElementById('fallback-main-button');
   if (tg) {
-    tg.MainButton.setParams({ text: 'Обновить анализ', color: '#00E5C7', text_color: '#04342C' });
+    tg.MainButton.setParams({ text: t('an_main_btn'), color: '#00E5C7', text_color: '#04342C' });
     tg.MainButton.show();
     tg.MainButton.onClick(refreshAnalysis);
     tg.BackButton.show();
@@ -461,7 +461,7 @@
   function renderPickerList(symbols) {
     pickerList.innerHTML = symbols.map(function (s) {
       return '<div class="picker-item" data-symbol="' + s.symbol + '">' + s.base + ' <span style="color:var(--text-tertiary);font-weight:400">/USDT</span></div>';
-    }).join('') || '<div class="picker-item" style="color:var(--text-tertiary);font-weight:400">Ничего не найдено</div>';
+    }).join('') || '<div class="picker-item" style="color:var(--text-tertiary);font-weight:400">' + t('an_picker_empty') + '</div>';
     pickerList.querySelectorAll('.picker-item[data-symbol]').forEach(function (item) {
       item.addEventListener('click', function () {
         haptic('light');

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Онбординг</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="shared.js"></script>
 <style>
   :root {
     --bg: #000000;
@@ -236,6 +237,8 @@
 <body>
 <div class="app-shell">
 
+  <div id="lang-host" style="display:flex;justify-content:flex-end;margin-bottom:4px;"></div>
+
   <div class="brand">
     <svg class="brand-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="1" y="1" width="46" height="46" rx="13" fill="#0B0B0E" stroke="#1E1E24" stroke-width="1.5"/>
@@ -245,7 +248,7 @@
     <div class="brand-word">Seno</div>
   </div>
 
-  <h1>Готовые торговые сетапы&nbsp;— вход, стоп и цели за секунды</h1>
+  <h1 data-i18n="onb_headline">Готовые торговые сетапы&nbsp;— вход, стоп и цели за секунды</h1>
 
   <div class="features">
     <div class="feature">
@@ -257,8 +260,8 @@
         </svg>
       </div>
       <div class="feature-text">
-        <p class="feature-title">Автоматический скрининг рынка</p>
-        <p class="feature-desc">Приложение само находит сетапы по десяткам монет</p>
+        <p class="feature-title" data-i18n="onb_f1_title">Автоматический скрининг рынка</p>
+        <p class="feature-desc" data-i18n="onb_f1_desc">Приложение само находит сетапы по десяткам монет</p>
       </div>
     </div>
 
@@ -271,8 +274,8 @@
         </svg>
       </div>
       <div class="feature-text">
-        <p class="feature-title">Вход, стоп-лосс и тейк-профиты</p>
-        <p class="feature-desc">Расчёт уже готов — считать уровни вручную не нужно</p>
+        <p class="feature-title" data-i18n="onb_f2_title">Вход, стоп-лосс и тейк-профиты</p>
+        <p class="feature-desc" data-i18n="onb_f2_desc">Расчёт уже готов — считать уровни вручную не нужно</p>
       </div>
     </div>
 
@@ -285,13 +288,13 @@
         </svg>
       </div>
       <div class="feature-text">
-        <p class="feature-title">Разбор факторов</p>
-        <p class="feature-desc">Видно, почему выдан именно такой сигнал</p>
+        <p class="feature-title" data-i18n="onb_f3_title">Разбор факторов</p>
+        <p class="feature-desc" data-i18n="onb_f3_desc">Видно, почему выдан именно такой сигнал</p>
       </div>
     </div>
   </div>
 
-  <div class="preview-label">Так выглядит сигнал</div>
+  <div class="preview-label" data-i18n="onb_preview_label">Так выглядит сигнал</div>
   <div class="signal-preview">
     <div class="signal-left">
       <svg class="spark" viewBox="0 0 56 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -307,30 +310,25 @@
     </div>
   </div>
 
-  <p class="disclaimer">Аналитика не является инвестиционной рекомендацией. Торговля криптовалютой сопряжена с риском потери средств.</p>
+  <p class="disclaimer" data-i18n="onb_disclaimer">Аналитика не является инвестиционной рекомендацией. Торговля криптовалютой сопряжена с риском потери средств.</p>
 
   <div class="spacer"></div>
 
-  <button id="fallback-main-button">Смотреть сигналы →</button>
-  <a class="how-link" href="#" id="how-it-works">Как это работает</a>
+  <button id="fallback-main-button" data-i18n="onb_cta">Смотреть сигналы →</button>
+  <a class="how-link" href="#" id="how-it-works" data-i18n="onb_how">Как это работает</a>
 </div>
 
 <script>
-  var tg = window.Telegram && window.Telegram.WebApp;
   var fallbackBtn = document.getElementById('fallback-main-button');
 
   function proceed() {
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    window.location.href = '02-main-menu.html';
+    haptic('light');
+    goTo('02-main-menu.html');
   }
 
   if (tg) {
-    tg.ready();
-    tg.expand();
-    tg.setBackgroundColor('#000000');
-    tg.setHeaderColor('#000000');
     tg.MainButton.setParams({
-      text: 'Смотреть сигналы →',
+      text: t('onb_cta'),
       color: '#00E5C7',
       text_color: '#04342C'
     });
@@ -344,7 +342,7 @@
 
   document.getElementById('how-it-works').addEventListener('click', function (e) {
     e.preventDefault();
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    haptic('light');
   });
 </script>
 </body>
