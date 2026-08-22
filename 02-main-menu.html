@@ -8,221 +8,73 @@
 <script src="shared.js"></script>
 <style>
   :root {
-    --bg: #000000;
-    --surface: #0B0B0E;
-    --surface-raised: #131318;
-    --border: #1E1E24;
-    --text-primary: #F2F4F7;
-    --text-secondary: #8A8F9C;
-    --text-tertiary: #5A5F6B;
-    --accent: #00E5C7;
-    --up: #1FCF6C;
-    --down: #F6465D;
-    --warn: #F0B90B;
+    --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
+    --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --text-tertiary: #5A5F6B;
+    --accent: #00E5C7; --up: #1FCF6C; --down: #F6465D; --warn: #F0B90B;
     --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
     --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
   }
-
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: var(--bg);
-    color: var(--text-primary);
-    font-family: var(--font);
-  }
-
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
   body { display: flex; justify-content: center; }
+  .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); }
 
-  .app-shell {
-    width: 100%;
-    max-width: 420px;
-    min-height: 100vh;
-    padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
-  }
-
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 18px;
-  }
-
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
   .logo { display: flex; align-items: center; gap: 8px; }
   .logo svg { width: 26px; height: 26px; }
   .logo span { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
-
   .user-block { display: flex; align-items: center; gap: 8px; }
 
-  .avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-secondary);
-  }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-raised); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
 
-  .sub-badge {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 9px;
-    border-radius: 8px;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    white-space: nowrap;
-  }
-
+  .sub-badge { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 8px; background: var(--surface-raised);
+    border: 1px solid var(--border); color: var(--text-secondary); white-space: nowrap; }
   .sub-badge.active { color: #04342C; background: var(--up); border-color: var(--up); }
   .sub-badge.warn { color: #412402; background: var(--warn); border-color: var(--warn); }
 
-  .section-title {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: var(--text-tertiary);
-    margin: 0 0 10px 2px;
-  }
+  .greeting { font-size: 13px; color: var(--text-tertiary); margin: 12px 0 16px 2px; }
+  .greeting b { color: var(--text-secondary); font-weight: 600; }
 
-  .market-card {
-    display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    margin-bottom: 20px;
-    gap: 18px;
-    min-height: 66px;
-  }
+  .section-title { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 10px 2px; }
 
+  .market-card { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 14px 16px; margin-bottom: 22px; gap: 18px; min-height: 66px; }
   .market-item { flex: 1; min-width: 0; }
   .market-label { font-size: 11px; color: var(--text-secondary); margin: 0 0 6px; }
-
   .fng-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
   .fng-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; }
   .fng-class { font-size: 12px; color: var(--warn); font-weight: 700; }
-
-  .fng-scale {
-    height: 4px;
-    border-radius: 2px;
-    background: linear-gradient(90deg, #F6465D, #F0B90B, #1FCF6C);
-    position: relative;
-  }
-
-  .fng-marker {
-    position: absolute;
-    top: -3px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--text-primary);
-    border: 2px solid #000;
-    transform: translateX(-50%);
-  }
-
+  .fng-scale { height: 4px; border-radius: 2px; background: linear-gradient(90deg, #F6465D, #F0B90B, #1FCF6C); position: relative; }
+  .fng-marker { position: absolute; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--text-primary); border: 2px solid #000; transform: translateX(-50%); }
   .dom-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; }
-  .dom-sub { font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
-
   .divider-v { width: 1px; background: var(--border); flex: none; }
 
-  .signals-scroll {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    margin: 0 -16px 20px;
-    padding-left: 16px;
-    padding-right: 16px;
-    scroll-snap-type: x proximity;
-    min-height: 84px;
-  }
-
+  .signals-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; margin: 0 -16px 22px;
+    padding-left: 16px; padding-right: 16px; scroll-snap-type: x proximity; min-height: 84px; }
   .signals-scroll::-webkit-scrollbar { display: none; }
-
-  .signal-card {
-    flex: none;
-    scroll-snap-align: start;
-    width: 118px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px;
-  }
-
+  .signal-card { flex: none; scroll-snap-align: start; width: 118px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
   .signal-card .tk { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
   .signal-card .pr { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px; }
-
-  .dir-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 7px;
-  }
-
+  .dir-pill { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 7px; }
   .dir-pill.buy { background: var(--up); color: #04342C; }
   .dir-pill.sell { background: var(--down); color: #4A1013; }
   .dir-pill.wait { background: var(--surface-raised); color: var(--text-secondary); border: 1px solid var(--border); }
-
   .empty-hint { font-size: 12.5px; color: var(--text-tertiary); padding: 12px 2px; }
 
-  .grid-2x2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-
-  .section-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-height: 96px;
-  }
-
+  .grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px;
+    display: flex; flex-direction: column; gap: 20px; min-height: 96px; }
   .section-card:active { transform: scale(0.97); opacity: 0.9; }
-
-  .section-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: var(--surface-raised);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
+  .section-icon { width: 34px; height: 34px; border-radius: 10px; background: var(--surface-raised); display: flex; align-items: center; justify-content: center; }
   .section-icon svg { width: 17px; height: 17px; }
-
   .section-card .st { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 2px; }
   .section-card .sd { font-size: 11.5px; color: var(--text-secondary); margin: 0; line-height: 1.35; }
 
-  .updated-at {
-    text-align: center;
-    font-size: 11px;
-    color: var(--text-tertiary);
-  }
+  .updated-at { text-align: center; font-size: 11px; color: var(--text-tertiary); }
 
-  .skeleton {
-    background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
-    background-size: 400% 100%;
-    animation: shimmer 1.4s ease-in-out infinite;
-    border-radius: 10px;
-  }
+  .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
+    background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: 10px; }
   @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 </style>
 </head>
@@ -241,8 +93,11 @@
     <div class="user-block">
       <span class="sub-badge" id="sub-badge">…</span>
       <div class="avatar" id="avatar">–</div>
+      <div id="lang-host"></div>
     </div>
   </header>
+
+  <p class="greeting" id="greeting">&nbsp;</p>
 
   <div class="market-card" id="market-card">
     <div class="market-item"><div class="skeleton" style="height:40px"></div></div>
@@ -265,10 +120,7 @@
           <path d="M20 20L15.5 15.5" stroke="#00E5C7" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
       </div>
-      <div>
-        <p class="st" data-i18n="menu_screener_t">Скринер</p>
-        <p class="sd" data-i18n="menu_screener_d">Поиск сетапов по рынку</p>
-      </div>
+      <div><p class="st" data-i18n="menu_screener_t">Скринер</p><p class="sd" data-i18n="menu_screener_d">Поиск сетапов по рынку</p></div>
     </div>
 
     <div class="section-card" data-nav="04-analysis.html">
@@ -278,10 +130,7 @@
           <path d="M4 19H20" stroke="#00E5C7" stroke-width="1.2" stroke-linecap="round"/>
         </svg>
       </div>
-      <div>
-        <p class="st" data-i18n="menu_analysis_t">Анализ</p>
-        <p class="sd" data-i18n="menu_analysis_d">Разбор конкретной монеты</p>
-      </div>
+      <div><p class="st" data-i18n="menu_analysis_t">Анализ</p><p class="sd" data-i18n="menu_analysis_d">Разбор конкретной монеты</p></div>
     </div>
 
     <div class="section-card" data-nav="07-referral.html">
@@ -293,10 +142,7 @@
           <path d="M14.5 17.5C14.9 15.8 16 15 17.3 15C19 15 20 16.2 20 18.5" stroke="#00E5C7" stroke-width="1.4" stroke-linecap="round"/>
         </svg>
       </div>
-      <div>
-        <p class="st" data-i18n="menu_referral_t">Рефералы</p>
-        <p class="sd" data-i18n="menu_referral_d">40% с каждого приглашённого</p>
-      </div>
+      <div><p class="st" data-i18n="menu_referral_t">Рефералы</p><p class="sd" data-i18n="menu_referral_d">40% с каждого приглашённого</p></div>
     </div>
 
     <div class="section-card" data-nav="06-subscription.html">
@@ -306,10 +152,7 @@
           <path d="M9 12L11 14L15.5 9.5" stroke="#00E5C7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div>
-        <p class="st" data-i18n="menu_subscription_t">Подписка</p>
-        <p class="sd" data-i18n="menu_subscription_d">Управление доступом</p>
-      </div>
+      <div><p class="st" data-i18n="menu_subscription_t">Подписка</p><p class="sd" data-i18n="menu_subscription_d">Управление доступом</p></div>
     </div>
   </div>
 
@@ -317,7 +160,10 @@
 </div>
 
 <script>
-  if (tg) { tg.MainButton.hide(); tg.BackButton.hide(); }
+  if (tg && tg.BackButton) { try { tg.BackButton.hide(); } catch (e) {} }
+  document.getElementById('lang-host').innerHTML = langSwitchHtml();
+  wireLangSwitchers();
+  renderBottomNav('home');
 
   document.querySelectorAll('[data-nav]').forEach(function (el) {
     el.addEventListener('click', function () {
@@ -330,12 +176,15 @@
     const r = await apiFetch('/api/me');
     const badge = document.getElementById('sub-badge');
     const avatar = document.getElementById('avatar');
+    const greeting = document.getElementById('greeting');
     if (!r.ok || !r.data) {
       badge.textContent = t('menu_guest');
+      greeting.innerHTML = t('menu_greeting');
       return;
     }
     const me = r.data;
     avatar.textContent = (me.first_name || '?').slice(0, 1).toUpperCase();
+    greeting.innerHTML = t('menu_greeting') + (me.first_name ? ', <b>' + me.first_name + '</b>' : '');
     if (me.subscription.active) {
       const days = Math.max(0, Math.ceil((new Date(me.subscription.expires_at) - new Date()) / 86400000));
       badge.textContent = t('menu_sub_active', { n: days });

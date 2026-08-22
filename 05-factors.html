@@ -19,10 +19,7 @@
   body { display: flex; justify-content: center; }
   .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); }
 
-  .topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-  .back-btn { width: 30px; height: 30px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
-  .back-btn svg { width: 15px; height: 15px; }
-  .topbar .word { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); }
+  .subtitle { font-size: 12.5px; color: var(--text-tertiary); margin: -8px 0 16px 2px; }
 
   .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; min-height: 84px; }
   .summary-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -53,10 +50,8 @@
 <body>
 <div class="app-shell">
 
-  <div class="topbar">
-    <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <span class="word" id="topbar-title">Seno · Факторы</span>
-  </div>
+  <div id="app-header"></div>
+  <p class="subtitle" id="subtitle"></p>
 
   <div id="skeleton">
     <div class="skeleton"></div>
@@ -85,15 +80,10 @@
   const params = new URLSearchParams(window.location.search);
   const symbol = params.get('symbol') || 'BTC/USDT';
   const timeframe = params.get('timeframe') || '4h';
+  const backHref = '04-analysis.html?' + qs({ symbol, timeframe });
 
-  if (tg) { tg.MainButton.hide(); tg.BackButton.show(); tg.BackButton.onClick(function () { goTo('04-analysis.html?' + qs({ symbol, timeframe })); }); }
-  document.getElementById('back').addEventListener('click', function () {
-    haptic('light');
-    goTo('04-analysis.html?' + qs({ symbol, timeframe }));
-  });
-  document.getElementById('topbar-title').textContent = t('fa_word') + ' — ' + symbol + ' · ' + timeframe;
-
-  const DIR_ARROW = { UP: '🟢▲', DOWN: '🔴▼' };
+  renderHeader({ title: t('fa_word'), showBack: true, backHref: backHref });
+  document.getElementById('subtitle').textContent = symbol + ' · ' + timeframe;
 
   async function load() {
     const r = await apiFetch('/api/analysis/factors?' + qs({ symbol, timeframe }));

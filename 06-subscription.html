@@ -19,11 +19,6 @@
   body { display: flex; justify-content: center; }
   .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
 
-  .topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-  .back-btn { width: 30px; height: 30px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
-  .back-btn svg { width: 15px; height: 15px; }
-  .topbar .word { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); }
-
   .active-card { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; margin-bottom: 16px; }
   .active-card .lbl { font-size: 11px; color: var(--text-secondary); margin: 0 0 6px; }
   .active-card .status { font-size: 17px; font-weight: 700; color: var(--up); margin: 0 0 12px; }
@@ -62,29 +57,20 @@
 
   .faq-item { border-bottom: 1px solid var(--border); }
   .faq-item:first-child { border-top: 1px solid var(--border); }
-  .faq-q { display: flex; align-items: center; justify-content: space-between; padding: 13px 2px; font-size: 13.5px; font-weight: 700; }
+  .faq-q { display: flex; align-items: center; justify-content: space-between; padding: 13px 2px; font-size: 13.5px; font-weight: 700; cursor: pointer; }
   .faq-q svg { width: 14px; height: 14px; transition: transform 0.2s ease-out; flex: none; }
   .faq-item.open .faq-q svg { transform: rotate(180deg); }
   .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; }
   .faq-item.open .faq-a { max-height: 120px; }
   .faq-a p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 13px; }
 
-  #fallback-main-button {
-    display: none; align-items: center; justify-content: center; width: 100%; height: 50px; margin-top: 18px;
-    background: var(--accent); color: #04342C; font-family: var(--font); font-size: 15px; font-weight: 700;
-    border: none; border-radius: 12px; box-shadow: 0 0 20px rgba(0, 229, 199, 0.25);
-  }
-  #fallback-main-button:active { transform: scale(0.97); }
-  #fallback-main-button.disabled { background: var(--surface-raised); color: var(--text-tertiary); box-shadow: none; }
+  #faq { margin-bottom: 100px; }
 </style>
 </head>
 <body>
 <div class="app-shell">
 
-  <div class="topbar">
-    <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <span class="word" data-i18n="sub_word">Seno · Подписка</span>
-  </div>
+  <div id="app-header"></div>
 
   <div class="active-card" id="active-card">
     <p class="lbl" data-i18n="sub_status_label">Статус подписки</p>
@@ -135,13 +121,10 @@
       <div class="faq-a"><p data-i18n="sub_faq_a3">Да, Seno работает прямо внутри Telegram на любом устройстве — отдельно устанавливать ничего не нужно.</p></div>
     </div>
   </div>
-
-  <button id="fallback-main-button">Оплатить $59</button>
 </div>
 
 <script>
-  if (tg) { tg.BackButton.show(); tg.BackButton.onClick(function () { goTo('02-main-menu.html'); }); }
-  document.getElementById('back').addEventListener('click', function () { haptic('light'); goTo('02-main-menu.html'); });
+  renderHeader({ title: t('sub_word'), showBack: true, backHref: '02-main-menu.html' });
 
   const PROVIDER_META = {
     cryptobot: { name: 'CryptoBot', sub: 'USDT, TON, BTC', icon: '<circle cx="12" cy="12" r="9" stroke="#00E5C7" stroke-width="1.6"/><circle cx="9" cy="11" r="1.3" fill="#00E5C7"/><circle cx="15" cy="11" r="1.3" fill="#00E5C7"/><path d="M8.5 15C9.5 16 14.5 16 15.5 15" stroke="#00E5C7" stroke-width="1.4" stroke-linecap="round"/>' },
@@ -151,27 +134,12 @@
   let selectedProvider = null;
   let currentInvoice = null;
 
-  const fallbackBtn = document.getElementById('fallback-main-button');
-
-  function setMainButtonAction(text, enabled, onClick) {
-    if (tg) {
-      tg.MainButton.setParams({ text: text, color: enabled ? '#00E5C7' : '#131318', text_color: enabled ? '#04342C' : '#5A5F6B' });
-      tg.MainButton.show();
-      tg.MainButton.offClick(tg.MainButton._lastHandler || function () {});
-      tg.MainButton._lastHandler = onClick;
-      tg.MainButton.onClick(onClick);
-      fallbackBtn.style.display = 'none';
-    } else {
-      fallbackBtn.textContent = text;
-      fallbackBtn.className = enabled ? '' : 'disabled';
-      fallbackBtn.style.display = 'flex';
-      fallbackBtn.onclick = onClick;
-    }
-  }
-
   async function loadStatus() {
     const r = await apiFetch('/api/subscription/status');
-    if (!r.ok || !r.data) return;
+    if (!r.ok || !r.data) {
+      renderStickyButton({ text: t('retry'), onClick: loadStatus });
+      return;
+    }
     const data = r.data;
     document.getElementById('price-num').textContent = '$' + data.price_usd.toFixed(0);
 
@@ -180,16 +148,16 @@
       document.getElementById('tariff-card').style.display = 'none';
       document.getElementById('pay-section').style.display = 'none';
       const exp = new Date(data.expires_at);
-      document.getElementById('active-until').textContent = exp.toLocaleDateString('ru-RU') + ' ' + exp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('active-until').textContent = dateRu(data.expires_at) + ' ' + exp.toLocaleTimeString(LOCALE_MAP[currentLang()], { hour: '2-digit', minute: '2-digit' });
       const days = Math.max(0, Math.ceil((exp - new Date()) / 86400000));
       document.getElementById('active-days').textContent = days;
-      setMainButtonAction(t('sub_renew_btn'), true, function () { startPayment(); });
+      renderStickyButton({ text: t('sub_renew_btn'), onClick: startPayment });
     } else {
       document.getElementById('active-card').style.display = 'none';
       document.getElementById('tariff-card').style.display = 'block';
       document.getElementById('pay-section').style.display = 'block';
       renderProviders(data.providers);
-      setMainButtonAction(t('sub_pay_amount_btn', { amount: data.price_usd.toFixed(0) }), !!selectedProvider, startPayment);
+      renderStickyButton({ text: t('sub_pay_amount_btn', { amount: data.price_usd.toFixed(0) }), onClick: startPayment, disabled: !selectedProvider });
     }
   }
 
@@ -210,6 +178,7 @@
         el.querySelectorAll('.pay-method').forEach(function (x) { x.classList.remove('selected'); });
         el2.classList.add('selected');
         selectedProvider = el2.getAttribute('data-provider');
+        renderStickyButton({ text: t('sub_pay_amount_btn', { amount: document.getElementById('price-num').textContent.replace('$', '') }), onClick: startPayment, disabled: !selectedProvider });
       });
     });
   }
@@ -227,7 +196,7 @@
     document.getElementById('invoice-text').textContent = t('sub_invoice_text', { amount: currentInvoice.amount.toFixed(0) });
     document.getElementById('pay-link').href = currentInvoice.pay_url;
     document.getElementById('invoice-card').style.display = 'block';
-    if (tg && tg.openLink) tg.openLink(currentInvoice.pay_url);
+    if (tg && tg.openLink) { try { tg.openLink(currentInvoice.pay_url); } catch (e) { window.open(currentInvoice.pay_url, '_blank'); } }
   }
 
   async function checkPayment() {

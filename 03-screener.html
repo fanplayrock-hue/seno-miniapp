@@ -14,162 +14,61 @@
     --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
     --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
   }
-
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
   body { display: flex; justify-content: center; }
+  .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
 
-  .app-shell {
-    width: 100%;
-    max-width: 420px;
-    min-height: 100vh;
-    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
-  }
-
-  header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-  header svg { width: 24px; height: 24px; }
-  header .word { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); }
-  header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0 4px; }
-
-  .segment {
-    display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 3px;
-    margin-bottom: 12px;
-  }
-
-  .segment button {
-    flex: 1;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-family: var(--font);
-    font-size: 12.5px;
-    font-weight: 700;
-    padding: 9px 4px;
-    border-radius: 9px;
-    transition: background 0.18s ease-out, color 0.18s ease-out;
-  }
-
+  .segment { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 3px; margin-bottom: 12px; }
+  .segment button { flex: 1; border: none; background: transparent; color: var(--text-secondary); font-family: var(--font);
+    font-size: 12.5px; font-weight: 700; padding: 9px 4px; border-radius: 9px; transition: background 0.18s ease-out, color 0.18s ease-out; }
   .segment button.active { background: var(--accent); color: #04342C; }
   .segment button:active { opacity: 0.85; }
 
-  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
-
-  .refresh-btn {
-    flex: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: auto;
-  }
-
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
+  .refresh-btn { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; margin-left: auto; }
   .refresh-btn svg { width: 17px; height: 17px; transition: transform 0.5s ease-out; }
   .refresh-btn.spinning svg { transform: rotate(360deg); }
   .refresh-btn:active { opacity: 0.8; }
-
   .cache-note { font-size: 11px; color: var(--text-tertiary); display: flex; align-items: center; }
 
   .list { display: flex; flex-direction: column; gap: 8px; }
-
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 64px;
-    padding: 10px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left-width: 3px;
-    border-left-style: solid;
-    border-radius: 0 14px 14px 0;
-  }
-
+  .row { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 14px; background: var(--surface);
+    border: 1px solid var(--border); border-left-width: 3px; border-left-style: solid; border-radius: 0 14px 14px 0; }
   .row.wait { opacity: 0.55; }
-
   .row-ticker { flex: 1; min-width: 0; }
   .row-ticker .tk { font-size: 14.5px; font-weight: 700; }
   .row-ticker .pair { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
-
   .row-price { flex: none; text-align: right; min-width: 78px; }
   .row-price .pr { font-family: var(--font-mono); font-size: 13px; }
   .row-price .ch { font-size: 11px; margin-top: 2px; font-weight: 700; }
   .row-price .ch.up { color: var(--up); }
   .row-price .ch.down { color: var(--down); }
-
   .row-badge { flex: none; min-width: 68px; text-align: right; }
-
-  .pill {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 8px;
-  }
-
+  .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 8px; }
   .pill.buy { background: var(--up); color: #04342C; }
   .pill.sell { background: var(--down); color: #4A1013; }
   .pill.wait { background: var(--surface-raised); color: var(--text-secondary); border: 1px solid var(--border); }
 
-  .skeleton-row {
-    height: 64px;
-    border-radius: 14px;
-    background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
-    background-size: 400% 100%;
-    animation: shimmer 1.4s ease-in-out infinite;
-    margin-bottom: 8px;
-  }
-
+  .skeleton-row { height: 64px; border-radius: 14px; background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
+    background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; margin-bottom: 8px; }
   @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 
-  .empty-state {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 56px 24px;
-    color: var(--text-secondary);
-  }
-
+  .empty-state { display: none; flex-direction: column; align-items: center; text-align: center; padding: 56px 24px; color: var(--text-secondary); }
   .empty-state svg { width: 40px; height: 40px; margin-bottom: 14px; }
   .empty-state p.t { font-size: 14.5px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px; }
   .empty-state p.d { font-size: 12.5px; margin: 0 0 16px; line-height: 1.4; }
 
-  .lock-card {
-    text-align: center;
-    padding: 20px 16px;
-    margin-top: 4px;
-    background: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: 16px;
-  }
+  .lock-card { text-align: center; padding: 20px 16px; margin-top: 4px; background: var(--surface); border: 1px solid var(--accent); border-radius: 16px; }
   .lock-card p { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 12px; line-height: 1.4; }
-  .lock-btn {
-    font-size: 13px; font-weight: 700; color: #04342C; background: var(--accent);
-    border: none; padding: 10px 18px; border-radius: 12px;
-  }
+  .lock-btn { font-size: 13px; font-weight: 700; color: #04342C; background: var(--accent); border: none; padding: 10px 18px; border-radius: 12px; }
 </style>
 </head>
 <body>
 <div class="app-shell">
 
-  <header>
-    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="46" height="46" rx="13" fill="#0B0B0E" stroke="#1E1E24" stroke-width="1.5"/>
-      <path d="M11 30L19 22L25 27L37 14" stroke="#00E5C7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="37" cy="14" r="3" fill="#00E5C7"/>
-    </svg>
-    <span class="word">Seno</span>
-    <h1 data-i18n="scr_title">Скринер</h1>
-  </header>
+  <div id="app-header"></div>
 
   <div class="segment">
     <button class="active" data-cat="scalping" data-i18n="scr_seg_scalping">Скальпинг</button>
@@ -185,12 +84,8 @@
   </div>
 
   <div id="skeleton">
-    <div class="skeleton-row"></div>
-    <div class="skeleton-row"></div>
-    <div class="skeleton-row"></div>
-    <div class="skeleton-row"></div>
-    <div class="skeleton-row"></div>
-    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>
+    <div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>
   </div>
 
   <div class="list" id="list" style="display: none;"></div>
@@ -208,7 +103,9 @@
 </div>
 
 <script>
-  if (tg) { tg.MainButton.hide(); tg.BackButton.show(); tg.BackButton.onClick(function () { goTo('02-main-menu.html'); }); }
+  if (tg && tg.BackButton) { try { tg.BackButton.hide(); } catch (e) {} }
+  renderHeader({ title: t('scr_title') });
+  renderBottomNav('screener');
 
   const listEl = document.getElementById('list');
   const skeletonEl = document.getElementById('skeleton');

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Анализ монеты</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="vendor/lightweight-charts.standalone.production.js"></script>
 <script src="shared.js"></script>
 <style>
   :root {
@@ -15,56 +15,43 @@
     --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
     --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
   }
-
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
   body { display: flex; justify-content: center; }
 
   .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); position: relative; }
 
-  .topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-  .topbar svg.logo-icon { width: 22px; height: 22px; }
-  .topbar .word { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); flex: 1; }
-  .back-btn { width: 30px; height: 30px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
-  .back-btn svg { width: 15px; height: 15px; }
-
   .coin-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
-  .coin-pick { display: flex; align-items: center; gap: 6px; }
-  .coin-pair { font-size: 14px; color: var(--text-primary); margin: 0 0 4px; font-weight: 700; }
-  .coin-pick svg { width: 14px; height: 14px; margin-top: -8px; }
+  .coin-pick { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .coin-pair { font-size: 15px; color: var(--text-primary); margin: 0; font-weight: 700; }
+  .coin-pick svg { width: 14px; height: 14px; }
   .coin-price { font-family: var(--font-mono); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
   .coin-change { display: inline-block; margin-left: 8px; font-size: 13px; font-weight: 700; vertical-align: middle; }
   .coin-change.up { color: var(--up); } .coin-change.down { color: var(--down); }
 
-  .tf-pills { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; max-width: 150px; }
-  .tf-pill {
-    font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; padding: 6px 9px; border-radius: 9px;
-    background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary);
-  }
+  .tf-pills { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; max-width: 160px; }
+  .tf-pill { font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; padding: 6px 9px; border-radius: 9px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; }
   .tf-pill.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
 
-  .verdict-card {
-    border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; background: var(--surface);
-    border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
-    min-height: 62px;
-  }
+  .verdict-card { border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; background: var(--surface);
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; min-height: 62px; }
   .verdict-card.buy { border-color: var(--up); box-shadow: 0 0 24px rgba(31,207,108,0.16); }
   .verdict-card.sell { border-color: var(--down); box-shadow: 0 0 24px rgba(246,70,93,0.16); }
-
   .verdict-left { display: flex; align-items: center; gap: 10px; }
   .verdict-left svg { width: 26px; height: 26px; }
   .verdict-dir { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
   .verdict-dir.buy { color: var(--up); } .verdict-dir.sell { color: var(--down); } .verdict-dir.wait { color: var(--text-secondary); }
   .verdict-sub { font-size: 11.5px; color: var(--text-secondary); margin: 2px 0 0; }
-
   .verdict-conf { text-align: right; }
   .verdict-conf .num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
   .verdict-conf .lbl { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
 
-  .chart-wrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 14px; height: 280px; }
+  .chart-wrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 8px; height: 320px; }
   #chart-container { width: 100%; height: 100%; }
   .watermark { position: absolute; left: 10px; bottom: 10px; opacity: 0.15; width: 26px; height: 26px; pointer-events: none; z-index: 2; }
-  .chart-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 12.5px; }
+  .chart-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 12.5px; text-align: center; padding: 0 24px; }
+  .chart-hint { text-align: center; font-size: 10.5px; color: var(--text-tertiary); margin: 0 0 14px; }
 
   .params-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 4px 16px; margin-bottom: 14px; }
   .param-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
@@ -83,31 +70,17 @@
   .factors-link { display: block; text-align: right; font-size: 12.5px; font-weight: 700; color: var(--accent); text-decoration: none; margin-top: 6px; }
   .factors-link:active { opacity: 0.7; }
 
-  .disclaimer { font-size: 11px; line-height: 1.5; color: var(--text-tertiary); text-align: center; padding: 0 6px; margin-bottom: 10px; }
+  .disclaimer { font-size: 11px; line-height: 1.5; color: var(--text-tertiary); text-align: center; padding: 0 6px; margin-bottom: 100px; }
 
-  .lock-card { text-align: center; padding: 26px 18px; margin-bottom: 14px; background: var(--surface); border: 1px solid var(--accent); border-radius: 16px; }
+  .lock-card { text-align: center; padding: 26px 18px; margin-bottom: 100px; background: var(--surface); border: 1px solid var(--accent); border-radius: 16px; }
   .lock-card p { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px; line-height: 1.4; }
   .lock-btn { font-size: 13.5px; font-weight: 700; color: #04342C; background: var(--accent); border: none; padding: 11px 20px; border-radius: 12px; }
 
-  #fallback-main-button {
-    display: none; align-items: center; justify-content: center; width: 100%; height: 50px;
-    background: var(--accent); color: #04342C; font-family: var(--font); font-size: 15px; font-weight: 700;
-    border: none; border-radius: 12px; box-shadow: 0 0 20px rgba(0, 229, 199, 0.25);
-  }
-  #fallback-main-button:active { transform: scale(0.97); }
-
-  /* Coin picker overlay */
-  .picker-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: flex-end; justify-content: center; z-index: 50;
-  }
-  .picker-sheet {
-    width: 100%; max-width: 420px; background: var(--surface); border-radius: 20px 20px 0 0; border: 1px solid var(--border);
-    padding: 16px; max-height: 70vh; display: flex; flex-direction: column;
-  }
-  .picker-search {
-    background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px;
-    color: var(--text-primary); font-family: var(--font); font-size: 14px; margin-bottom: 12px; width: 100%;
-  }
+  .picker-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+  .picker-sheet { width: 100%; max-width: 420px; background: var(--surface); border-radius: 20px 20px 0 0; border: 1px solid var(--border);
+    padding: 16px; max-height: 70vh; display: flex; flex-direction: column; }
+  .picker-search { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px;
+    color: var(--text-primary); font-family: var(--font); font-size: 14px; margin-bottom: 12px; width: 100%; }
   .picker-list { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
   .picker-item { padding: 12px 10px; border-radius: 10px; font-size: 14.5px; font-weight: 700; }
   .picker-item:active { background: var(--surface-raised); }
@@ -117,10 +90,7 @@
 <body>
 <div class="app-shell">
 
-  <div class="topbar">
-    <div class="back-btn" id="back"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F2F4F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <span class="word" data-i18n="an_word">Seno · Анализ</span>
-  </div>
+  <div id="app-header"></div>
 
   <div class="coin-header">
     <div>
@@ -162,6 +132,7 @@
       <path d="M11 30L19 22L25 27L37 14" stroke="#F2F4F7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
+  <p class="chart-hint" id="chart-hint" style="display:none">↔ pinch / drag</p>
 
   <div id="content-below" style="display:none">
     <div class="params-card" id="params-card"></div>
@@ -179,8 +150,6 @@
     <p id="lock-text" data-i18n="an_lock_text">Полный анализ этой монеты доступен по подписке. Бесплатно можно посмотреть BTC/USDT на 4ч.</p>
     <button class="lock-btn" id="lock-btn" data-i18n="an_lock_btn">Оформить подписку — $59/мес</button>
   </div>
-
-  <button id="fallback-main-button" data-i18n="an_main_btn">Обновить анализ</button>
 </div>
 
 <div class="picker-overlay" id="picker-overlay">
@@ -192,11 +161,14 @@
 </div>
 
 <script>
+  renderHeader({ title: t('an_word'), showBack: true, backHref: '02-main-menu.html' });
+
   const params = new URLSearchParams(window.location.search);
   let currentSymbol = params.get('symbol') || 'BTC/USDT';
   let currentTf = params.get('timeframe') || '4h';
-  let chart = null, candleSeries = null, volumeSeries = null;
+  let chart = null, candleSeries = null, volumeSeries = null, priceLines = [];
   const extraSeries = [];
+  const chartLibAvailable = typeof LightweightCharts !== 'undefined';
 
   function setActiveTf(tf) {
     document.querySelectorAll('.tf-pill').forEach(function (p) {
@@ -205,7 +177,7 @@
   }
 
   function ensureChart() {
-    if (chart) return;
+    if (chart || !chartLibAvailable) return;
     chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
       layout: { background: { color: '#0B0B0E' }, textColor: '#8A8F9C', fontFamily: 'SF Mono, Consolas, monospace', fontSize: 10 },
       grid: { vertLines: { color: '#14141A' }, horzLines: { color: '#14141A' } },
@@ -214,17 +186,18 @@
       crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
       handleScroll: true,
       handleScale: true,
+      width: document.getElementById('chart-container').clientWidth,
+      height: document.getElementById('chart-container').clientHeight,
     });
     candleSeries = chart.addCandlestickSeries({
       upColor: '#1FCF6C', downColor: '#F6465D', borderVisible: false,
       wickUpColor: '#1FCF6C', wickDownColor: '#F6465D',
     });
-    volumeSeries = chart.addHistogramSeries({
-      priceFormat: { type: 'volume' }, priceScaleId: '', color: '#1FCF6C',
-    });
+    volumeSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '', color: '#1FCF6C' });
     volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
 
     window.addEventListener('resize', function () {
+      if (!chart) return;
       chart.applyOptions({ width: document.getElementById('chart-container').clientWidth });
     });
   }
@@ -240,24 +213,20 @@
     upper.setData([{ time: timeStart, value: top }, { time: timeEnd, value: top }]);
     const lower = chart.addLineSeries({ color: color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
     lower.setData([{ time: timeStart, value: bottom }, { time: timeEnd, value: bottom }]);
-    if (label) {
-      upper.setMarkers([{ time: timeEnd, position: 'inBar', color: color, shape: 'square', text: label, size: 0 }]);
-    }
+    if (label) upper.setMarkers([{ time: timeEnd, position: 'inBar', color: color, shape: 'square', text: label, size: 0 }]);
     extraSeries.push(upper, lower);
   }
 
   function addHLine(timeStart, timeEnd, price, color, dashed) {
     if (price === null || price === undefined) return;
-    const s = chart.addLineSeries({
-      color: color, lineWidth: 1, lineStyle: dashed ? 2 : 0,
-      lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false,
-    });
+    const s = chart.addLineSeries({ color: color, lineWidth: 1, lineStyle: dashed ? 2 : 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
     s.setData([{ time: timeStart, value: price }, { time: timeEnd, value: price }]);
     extraSeries.push(s);
   }
 
   function buildChart(data) {
     ensureChart();
+    if (!chart) throw new Error('chart-lib-unavailable');
     clearExtraSeries();
 
     candleSeries.setData(data.chart.candles);
@@ -274,14 +243,9 @@
       extraSeries.push(e50);
     }
 
-    (data.sr.support || []).slice(0, 2).forEach(function (lvl) {
-      const tEnd = data.chart.candles[data.chart.candles.length - 1].time;
-      addHLine(lvl.time_start, tEnd, lvl.price, 'rgba(0,229,199,0.55)', true);
-    });
-    (data.sr.resistance || []).slice(0, 2).forEach(function (lvl) {
-      const tEnd = data.chart.candles[data.chart.candles.length - 1].time;
-      addHLine(lvl.time_start, tEnd, lvl.price, 'rgba(246,70,93,0.55)', true);
-    });
+    const tEnd = data.chart.candles.length ? data.chart.candles[data.chart.candles.length - 1].time : null;
+    (data.sr.support || []).slice(0, 2).forEach(function (lvl) { addHLine(lvl.time_start, tEnd, lvl.price, 'rgba(0,229,199,0.55)', true); });
+    (data.sr.resistance || []).slice(0, 2).forEach(function (lvl) { addHLine(lvl.time_start, tEnd, lvl.price, 'rgba(246,70,93,0.55)', true); });
 
     if (data.smc) {
       (data.smc.bull_obs || []).forEach(function (z) { addZone(z.time_start, z.time_end, z.top, z.bottom, 'rgba(31,207,108,0.5)', 'OB'); });
@@ -300,16 +264,14 @@
       });
     });
 
-    if (candleSeries._priceLines) {
-      candleSeries._priceLines.forEach(function (pl) { candleSeries.removePriceLine(pl); });
-    }
-    candleSeries._priceLines = [];
+    priceLines.forEach(function (pl) { try { candleSeries.removePriceLine(pl); } catch (e) {} });
+    priceLines = [];
     if (data.trade_levels && data.trade_levels.entry) {
       const tl = data.trade_levels;
-      candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tl.entry, color: '#00E5C7', lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: t('an_entry') }));
-      candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tl.stop, color: '#F6465D', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'SL' }));
+      priceLines.push(candleSeries.createPriceLine({ price: tl.entry, color: '#00E5C7', lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: t('an_entry') }));
+      priceLines.push(candleSeries.createPriceLine({ price: tl.stop, color: '#F6465D', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'SL' }));
       (tl.targets || []).forEach(function (tp, i) {
-        candleSeries._priceLines.push(candleSeries.createPriceLine({ price: tp, color: '#1FCF6C', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'TP' + (i + 1) }));
+        priceLines.push(candleSeries.createPriceLine({ price: tp, color: '#1FCF6C', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'TP' + (i + 1) }));
       });
     }
 
@@ -374,10 +336,20 @@
     document.getElementById('coin-pair').textContent = currentSymbol;
     setActiveTf(currentTf);
     document.getElementById('chart-loading').style.display = 'flex';
+    document.getElementById('chart-loading').textContent = t('an_chart_loading');
+    document.getElementById('chart-hint').style.display = 'none';
     document.getElementById('content-below').style.display = 'none';
     document.getElementById('lock-card').style.display = 'none';
+    renderStickyButton({ text: t('an_main_btn'), onClick: refreshAnalysis, disabled: true });
 
-    const r = await apiFetch('/api/analysis?' + qs({ symbol: currentSymbol, timeframe: currentTf }));
+    let r;
+    try {
+      r = await apiFetch('/api/analysis?' + qs({ symbol: currentSymbol, timeframe: currentTf }));
+    } catch (e) {
+      r = { ok: false, status: 0, data: null };
+    }
+
+    renderStickyButton({ text: t('an_main_btn'), onClick: refreshAnalysis });
 
     if (r.status === 402) {
       document.getElementById('chart-loading').textContent = t('an_locked_title');
@@ -392,7 +364,6 @@
     }
 
     const data = r.data;
-    document.getElementById('chart-loading').style.display = 'none';
     document.getElementById('coin-price').textContent = '$' + fmtPrice(data.price);
     const chEl = document.getElementById('coin-change');
     if (data.change_24h !== null) {
@@ -403,13 +374,20 @@
     }
 
     renderVerdict(data.setup);
-    buildChart(data);
+
+    try {
+      buildChart(data);
+      document.getElementById('chart-loading').style.display = 'none';
+      document.getElementById('chart-hint').style.display = 'block';
+    } catch (e) {
+      document.getElementById('chart-loading').textContent = t('an_no_data', { symbol: currentSymbol });
+    }
+
     renderParams(data.setup);
     renderReasons(data.setup.reasons);
     document.getElementById('content-below').style.display = 'block';
   }
 
-  document.getElementById('back').addEventListener('click', function () { haptic('light'); goTo('02-main-menu.html'); });
   document.getElementById('lock-btn').addEventListener('click', function () { haptic('light'); goTo('06-subscription.html'); });
   document.getElementById('factors-link').addEventListener('click', function (e) {
     e.preventDefault();
@@ -427,20 +405,6 @@
 
   function refreshAnalysis() { haptic('medium'); loadAnalysis(); }
 
-  const fallbackBtn = document.getElementById('fallback-main-button');
-  if (tg) {
-    tg.MainButton.setParams({ text: t('an_main_btn'), color: '#00E5C7', text_color: '#04342C' });
-    tg.MainButton.show();
-    tg.MainButton.onClick(refreshAnalysis);
-    tg.BackButton.show();
-    tg.BackButton.onClick(function () { goTo('02-main-menu.html'); });
-    fallbackBtn.style.display = 'none';
-  } else {
-    fallbackBtn.style.display = 'flex';
-    fallbackBtn.addEventListener('click', refreshAnalysis);
-  }
-
-  // Coin picker
   const pickerOverlay = document.getElementById('picker-overlay');
   const pickerList = document.getElementById('picker-list');
   const pickerSearch = document.getElementById('picker-search');
