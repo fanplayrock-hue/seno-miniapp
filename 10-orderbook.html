@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Seno — Стакан</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="locales.js?v=121905a8"></script>
+<script src="shared.js?v=1a272991"></script>
+<style>
+  :root {
+    --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
+    --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --text-tertiary: #5A5F6B;
+    --accent: #00E5C7; --up: #1FCF6C; --down: #F6465D; --warn: #F0B90B;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
+  body { display: flex; justify-content: center; }
+  .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); }
+
+  .coin-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .coin-pick { display: flex; align-items: center; gap: 6px; }
+  .coin-pick .pair { font-size: 16px; font-weight: 700; }
+  .coin-pick svg { width: 14px; height: 14px; }
+  .ex-tag { font-size: 10.5px; font-weight: 700; color: var(--text-tertiary); background: var(--surface-raised);
+    border: 1px solid var(--border); padding: 4px 8px; border-radius: 8px; }
+
+  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+  .metric .k { font-size: 11px; color: var(--text-secondary); margin: 0 0 5px; }
+  .metric .v { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+
+  .imb-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; }
+  .imb-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .imb-head .k { font-size: 11px; color: var(--text-secondary); }
+  .imb-head .verdict { font-size: 12px; font-weight: 700; }
+  .imb-bar { height: 8px; border-radius: 4px; overflow: hidden; display: flex; background: var(--surface-raised); }
+  .imb-bar .b { background: var(--up); } .imb-bar .a { background: var(--down); }
+  .imb-legend { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-tertiary); margin-top: 5px; }
+
+  .section-title { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 10px 2px; }
+
+  .ladder { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 16px; }
+  .ladder-head { display: flex; justify-content: space-between; padding: 9px 12px; font-size: 10.5px; color: var(--text-tertiary); border-bottom: 1px solid var(--border); }
+  .lvl { position: relative; display: flex; justify-content: space-between; padding: 6px 12px; font-family: var(--font-mono); font-size: 12px; }
+  .lvl .fill { position: absolute; top: 0; bottom: 0; right: 0; opacity: 0.16; }
+  .lvl.bid .fill { background: var(--up); } .lvl.ask .fill { background: var(--down); }
+  .lvl .p, .lvl .a { position: relative; z-index: 1; }
+  .lvl.bid .p { color: var(--up); } .lvl.ask .p { color: var(--down); }
+  .lvl .a { color: var(--text-secondary); }
+  .mid-row { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 12px;
+    background: var(--surface-raised); font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+  .mid-row .lbl { font-family: var(--font); font-size: 10.5px; color: var(--text-tertiary); font-weight: 400; }
+
+  .wall { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface);
+    border: 1px solid var(--border); border-left-width: 3px; border-radius: 0 12px 12px 0; padding: 10px 12px; margin-bottom: 6px; }
+  .wall.bid { border-left-color: var(--up); } .wall.ask { border-left-color: var(--down); }
+  .wall .kind { font-size: 11.5px; font-weight: 700; }
+  .wall.bid .kind { color: var(--up); } .wall.ask .kind { color: var(--down); }
+  .wall .price { font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+  .wall .amt { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-secondary); }
+
+  .vp { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+  .vp-row { position: relative; height: 13px; margin-bottom: 2px; display: flex; align-items: center; }
+  .vp-row .bar { height: 9px; border-radius: 2px; background: var(--surface-raised); }
+  .vp-row.poc .bar { background: var(--accent); }
+  .vp-row .lbl { position: absolute; right: 4px; font-family: var(--font-mono); font-size: 9px; color: var(--text-tertiary); }
+  .vp-row.poc .lbl { color: var(--accent); font-weight: 700; }
+
+  .note { font-size: 10.5px; color: var(--text-tertiary); line-height: 1.5; margin: 0 0 18px 2px; }
+  .empty-hint { font-size: 12.5px; color: var(--text-tertiary); padding: 10px 2px; }
+
+  .lock-card { text-align: center; padding: 26px 18px; background: var(--surface); border: 1px solid var(--accent); border-radius: 16px; }
+  .lock-card p { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px; line-height: 1.4; }
+  .lock-btn { font-size: 13.5px; font-weight: 700; color: #04342C; background: var(--accent); border: none; padding: 11px 20px; border-radius: 12px; }
+
+  .skeleton { height: 60px; border-radius: 14px; background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
+    background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; margin-bottom: 10px; }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+  .picker-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+  .picker-sheet { width: 100%; max-width: 420px; background: var(--surface); border-radius: 20px 20px 0 0; border: 1px solid var(--border);
+    padding: 16px; max-height: 70vh; display: flex; flex-direction: column; }
+  .picker-search { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px;
+    color: var(--text-primary); font-family: var(--font); font-size: 14px; margin-bottom: 12px; width: 100%; }
+  .picker-list { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .picker-item { padding: 12px 10px; border-radius: 10px; font-size: 14.5px; font-weight: 700; }
+  .picker-item:active { background: var(--surface-raised); }
+  .picker-close { text-align: center; font-size: 13px; color: var(--text-secondary); padding: 10px 0 2px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="app-header"></div>
+
+  <div class="coin-bar">
+    <div class="coin-pick" id="coin-pick">
+      <span class="pair" id="coin-pair">BTC/USDT</span>
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 9L12 15L18 9" stroke="#8A8F9C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="ex-tag" id="ex-tag">—</span>
+  </div>
+
+  <div id="skeleton">
+    <div class="skeleton"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:200px"></div>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="metrics">
+      <div class="metric"><p class="k" data-i18n="ob_spread">Спред</p><div class="v" id="m-spread">—</div></div>
+      <div class="metric"><p class="k" data-i18n="ob_poc">Point of Control</p><div class="v" id="m-poc">—</div></div>
+    </div>
+
+    <div class="imb-card">
+      <div class="imb-head">
+        <span class="k" data-i18n="ob_imbalance">Дисбаланс спроса и предложения</span>
+        <span class="verdict" id="imb-verdict">—</span>
+      </div>
+      <div class="imb-bar"><div class="b" id="imb-b" style="width:50%"></div><div class="a" id="imb-a" style="width:50%"></div></div>
+      <div class="imb-legend"><span id="imb-bv">—</span><span id="imb-av">—</span></div>
+    </div>
+
+    <p class="section-title" data-i18n="ob_word">Стакан</p>
+    <div class="ladder" id="ladder"></div>
+
+    <p class="section-title" data-i18n="ob_walls">Крупные заявки</p>
+    <div id="walls"></div>
+
+    <p class="section-title" style="margin-top:16px" data-i18n="ob_volume_profile">Профиль объёма</p>
+    <div class="vp" id="vp"></div>
+    <p class="note" id="vp-note"></p>
+  </div>
+
+  <div class="lock-card" id="lock-card" style="display:none">
+    <p data-i18n="ob_lock_text">Стакан и микроструктура доступны по подписке.</p>
+    <button class="lock-btn" id="lock-btn" data-i18n="an_lock_btn">Оформить подписку — $59/мес</button>
+  </div>
+</div>
+
+<div class="picker-overlay" id="picker-overlay">
+  <div class="picker-sheet">
+    <input class="picker-search" id="picker-search" data-i18n-placeholder="an_picker_search" placeholder="Найти монету" />
+    <div class="picker-list" id="picker-list"></div>
+    <div class="picker-close" id="picker-close" data-i18n="close">Закрыть</div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  let currentSymbol = params.get('symbol') || 'BTC/USDT';
+  const timeframe = params.get('timeframe') || '1h';
+
+  renderHeader({ title: t('ob_word'), showBack: true, backHref: '02-main-menu.html' });
+
+  function fmtAmount(v) {
+    if (v >= 1000) return Math.round(v).toLocaleString(LOCALE_MAP[currentLang()]);
+    if (v >= 1) return v.toFixed(2);
+    return v.toFixed(4);
+  }
+
+  function renderLadder(d) {
+    const all = d.bids.concat(d.asks).map(function (l) { return l.amount; });
+    const max = Math.max.apply(null, all) || 1;
+    // Аски показываем сверху вниз от дальних к ближним — как в терминале,
+    // чтобы спред оказался посередине между ask и bid.
+    const asks = d.asks.slice().reverse();
+    let html = '<div class="ladder-head"><span>' + t('ob_asks') + '</span><span>' + t('ob_bids') + '</span></div>';
+    html += asks.map(function (l) {
+      return '<div class="lvl ask"><div class="fill" style="width:' + (l.amount / max * 100) + '%"></div>' +
+        '<span class="p">' + fmtPrice(l.price) + '</span><span class="a">' + fmtAmount(l.amount) + '</span></div>';
+    }).join('');
+    const mid = d.metrics.mid_price;
+    html += '<div class="mid-row"><span>' + fmtPrice(mid) + '</span><span class="lbl">' + t('ob_spread') +
+      ' ' + (d.metrics.spread_pct !== null ? d.metrics.spread_pct.toFixed(3) + '%' : '—') + '</span></div>';
+    html += d.bids.map(function (l) {
+      return '<div class="lvl bid"><div class="fill" style="width:' + (l.amount / max * 100) + '%"></div>' +
+        '<span class="p">' + fmtPrice(l.price) + '</span><span class="a">' + fmtAmount(l.amount) + '</span></div>';
+    }).join('');
+    document.getElementById('ladder').innerHTML = html;
+  }
+
+  function renderWalls(d) {
+    const bidWalls = (d.metrics.large_bid_clusters || []).map(function (c) { return { kind: 'bid', c: c }; });
+    const askWalls = (d.metrics.large_ask_clusters || []).map(function (c) { return { kind: 'ask', c: c }; });
+    const all = bidWalls.concat(askWalls).sort(function (x, y) { return y.c.amount - x.c.amount; });
+    const el = document.getElementById('walls');
+    if (!all.length) {
+      el.innerHTML = '<p class="empty-hint">' + t('ob_walls_empty') + '</p>';
+      return;
+    }
+    el.innerHTML = all.map(function (w) {
+      return '<div class="wall ' + w.kind + '">' +
+        '<span class="kind">' + t(w.kind === 'bid' ? 'ob_wall_bid' : 'ob_wall_ask') + '</span>' +
+        '<span class="price">' + fmtPrice(w.c.price) + '</span>' +
+        '<span class="amt">' + fmtAmount(w.c.amount) + '</span></div>';
+    }).join('');
+  }
+
+  function renderVolumeProfile(d) {
+    const prof = d.volume_profile || [];
+    const el = document.getElementById('vp');
+    if (!prof.length) {
+      el.innerHTML = '<p class="empty-hint">—</p>';
+      return;
+    }
+    const max = Math.max.apply(null, prof.map(function (p) { return p.volume; })) || 1;
+    const pocLow = d.poc ? d.poc.price_low : null;
+    // Сверху высокие цены — как на графике
+    el.innerHTML = prof.slice().reverse().map(function (p) {
+      const isPoc = pocLow !== null && p.price_low === pocLow;
+      return '<div class="vp-row' + (isPoc ? ' poc' : '') + '">' +
+        '<div class="bar" style="width:' + Math.max(1, p.volume / max * 100) + '%"></div>' +
+        '<span class="lbl">' + fmtPrice(p.price_high) + '</span></div>';
+    }).join('');
+  }
+
+  async function load() {
+    document.getElementById('coin-pair').textContent = currentSymbol;
+    document.getElementById('skeleton').style.display = 'block';
+    document.getElementById('content').style.display = 'none';
+    document.getElementById('lock-card').style.display = 'none';
+
+    const r = await apiFetch('/api/orderbook?' + qs({ symbol: currentSymbol, timeframe: timeframe }));
+    document.getElementById('skeleton').style.display = 'none';
+
+    if (r.status === 402) {
+      document.getElementById('lock-card').style.display = 'block';
+      return;
+    }
+    if (!r.ok || !r.data) {
+      document.getElementById('content').innerHTML = '<p class="empty-hint">' + t('ob_load_error') + '</p>';
+      document.getElementById('content').style.display = 'block';
+      return;
+    }
+
+    const d = r.data;
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('ex-tag').textContent = exchangeName(d.exchange);
+
+    const m = d.metrics;
+    document.getElementById('m-spread').textContent = m.spread_pct !== null ? m.spread_pct.toFixed(3) + '%' : '—';
+    document.getElementById('m-poc').textContent = d.poc ? fmtPrice((d.poc.price_low + d.poc.price_high) / 2) : '—';
+
+    const bv = m.bid_volume, av = m.ask_volume, tot = bv + av || 1;
+    document.getElementById('imb-b').style.width = (bv / tot * 100) + '%';
+    document.getElementById('imb-a').style.width = (av / tot * 100) + '%';
+    document.getElementById('imb-bv').textContent = fmtAmount(bv);
+    document.getElementById('imb-av').textContent = fmtAmount(av);
+    const verdict = document.getElementById('imb-verdict');
+    // ±5% считаем балансом: мелкие колебания стакана не стоит подавать
+    // как перевес одной из сторон.
+    if (m.imbalance > 0.05) {
+      verdict.textContent = t('ob_buy_pressure') + ' ' + Math.round(m.imbalance * 100) + '%';
+      verdict.style.color = 'var(--up)';
+    } else if (m.imbalance < -0.05) {
+      verdict.textContent = t('ob_sell_pressure') + ' ' + Math.round(Math.abs(m.imbalance) * 100) + '%';
+      verdict.style.color = 'var(--down)';
+    } else {
+      verdict.textContent = t('ob_balanced');
+      verdict.style.color = 'var(--text-secondary)';
+    }
+
+    renderLadder(d);
+    renderWalls(d);
+    renderVolumeProfile(d);
+    document.getElementById('vp-note').textContent = t('ob_zones_note');
+  }
+
+  document.getElementById('lock-btn').addEventListener('click', function () { haptic('light'); goTo('06-subscription.html'); });
+
+  // Выбор монеты
+  const pickerOverlay = document.getElementById('picker-overlay');
+  const pickerList = document.getElementById('picker-list');
+  const pickerSearch = document.getElementById('picker-search');
+  let allSymbols = [];
+
+  async function openPicker() {
+    haptic('light');
+    pickerOverlay.style.display = 'flex';
+    pickerSearch.value = '';
+    if (!allSymbols.length) {
+      const r = await apiFetch('/api/symbols');
+      if (r.ok && r.data) allSymbols = r.data.symbols;
+    }
+    renderPickerList(allSymbols);
+  }
+
+  function renderPickerList(symbols) {
+    pickerList.innerHTML = symbols.map(function (s) {
+      return '<div class="picker-item" data-symbol="' + s.symbol + '">' + s.base +
+        ' <span style="color:var(--text-tertiary);font-weight:400">/USDT</span></div>';
+    }).join('') || '<div class="picker-item" style="color:var(--text-tertiary);font-weight:400">' + t('an_picker_empty') + '</div>';
+    pickerList.querySelectorAll('.picker-item[data-symbol]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        haptic('light');
+        currentSymbol = item.getAttribute('data-symbol');
+        pickerOverlay.style.display = 'none';
+        load();
+      });
+    });
+  }
+
+  pickerSearch.addEventListener('input', function () {
+    const q = pickerSearch.value.trim().toUpperCase();
+    renderPickerList(allSymbols.filter(function (s) { return s.base.indexOf(q) !== -1; }));
+  });
+
+  document.getElementById('coin-pick').addEventListener('click', openPicker);
+  document.getElementById('picker-close').addEventListener('click', function () { pickerOverlay.style.display = 'none'; });
+  pickerOverlay.addEventListener('click', function (e) { if (e.target === pickerOverlay) pickerOverlay.style.display = 'none'; });
+
+  load();
+</script>
+</body>
+</html>

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Факторы анализа</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="shared.js"></script>
+<script src="locales.js?v=121905a8"></script>
+<script src="shared.js?v=1a272991"></script>
 <style>
   :root {
     --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
@@ -29,9 +30,23 @@
   .ratio-bar { height: 6px; border-radius: 3px; overflow: hidden; display: flex; background: var(--surface-raised); }
   .ratio-up { background: var(--up); } .ratio-down { background: var(--down); }
 
+  .cat-filter { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 12px; padding: 0 16px 2px; scrollbar-width: none; }
+  .cat-filter::-webkit-scrollbar { display: none; }
+  .cat-filter button { flex: none; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+    font-family: var(--font); font-size: 12px; font-weight: 700; padding: 7px 13px; border-radius: 9px; white-space: nowrap; }
+  .cat-filter button.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
+
   .factor-list { display: flex; flex-direction: column; gap: 10px; }
   .factor-card { border: 1px solid var(--border); border-radius: 16px; padding: 14px; background: var(--surface); }
-  .factor-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+  .factor-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+
+  .factor-weight { flex: none; text-align: right; }
+  .factor-weight .wv { font-family: var(--font-mono); font-size: 14px; font-weight: 700; }
+  .factor-weight .wv.up { color: var(--up); } .factor-weight .wv.down { color: var(--down); }
+  .factor-weight .wl { font-size: 9.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+  .weight-track { height: 4px; border-radius: 2px; background: var(--surface-raised); overflow: hidden; margin: 8px 0 0; }
+  .weight-fill { height: 100%; border-radius: 2px; }
+  .weight-fill.up { background: var(--up); } .weight-fill.down { background: var(--down); }
   .factor-cat { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 4px; }
   .factor-name-row { display: flex; align-items: center; gap: 7px; }
   .factor-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
@@ -59,6 +74,8 @@
     <div class="skeleton"></div>
   </div>
 
+  <p id="load-error" style="display:none;color:var(--text-tertiary);font-size:13px;padding:20px 2px;text-align:center"></p>
+
   <div id="content" style="display:none">
     <div class="summary-card">
       <div class="summary-top"><span class="summary-dir" id="summary-dir">—</span><span class="summary-conf" id="summary-conf"></span></div>
@@ -66,6 +83,7 @@
       <div class="ratio-bar"><div class="ratio-up" id="ratio-up" style="width:50%"></div><div class="ratio-down" id="ratio-down" style="width:50%"></div></div>
     </div>
 
+    <div class="cat-filter" id="cat-filter"></div>
     <div class="factor-list" id="factor-list"></div>
 
     <div class="lock-card" id="lock-card" style="display:none">
@@ -85,6 +103,9 @@
   renderHeader({ title: t('fa_word'), showBack: true, backHref: backHref });
   document.getElementById('subtitle').textContent = symbol + ' · ' + timeframe;
 
+  let allFactors = [];
+  let activeCat = '__all__';
+
   async function load() {
     const r = await apiFetch('/api/analysis/factors?' + qs({ symbol, timeframe }));
     document.getElementById('skeleton').style.display = 'none';
@@ -96,8 +117,11 @@
       return;
     }
     if (!r.ok || !r.data) {
-      document.getElementById('content').innerHTML = '<p style="color:var(--text-tertiary);font-size:13px">' + t('fa_load_error') + '</p>';
-      document.getElementById('content').style.display = 'block';
+      // Не перезаписываем #content целиком: это снесло бы фильтр и список,
+      // и экран уже не смог бы отрисоваться без перезагрузки страницы.
+      const err = document.getElementById('load-error');
+      err.textContent = t('fa_load_error');
+      err.style.display = 'block';
       return;
     }
 
@@ -115,17 +139,67 @@
     document.getElementById('ratio-up').style.width = (data.up_count / total * 100) + '%';
     document.getElementById('ratio-down').style.width = (data.down_count / total * 100) + '%';
 
-    document.getElementById('factor-list').innerHTML = data.factors.map(function (f) {
-      return '<div class="factor-card">' +
-        '<div class="factor-top"><div><p class="factor-cat">' + f.cat + '</p>' +
-        '<div class="factor-name-row"><div class="factor-dot ' + (f.dir === 'UP' ? 'up' : 'down') + '"></div><span class="factor-name">' + f.name + '</span></div></div></div>' +
-        '<p class="factor-desc">' + f.desc + '</p>' +
-        '</div>';
-    }).join('');
+    allFactors = data.factors;
+    renderFilter();
+    renderFactors();
 
     if (data.locked) {
       document.getElementById('lock-card').style.display = 'block';
     }
+  }
+
+  function renderFilter() {
+    // Категории берём из самих данных: ядро может добавить новую,
+    // и хардкод списка тут же начал бы её прятать.
+    const cats = [];
+    allFactors.forEach(function (f) { if (cats.indexOf(f.cat) === -1) cats.push(f.cat); });
+    const el = document.getElementById('cat-filter');
+    if (cats.length < 2) { el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+    el.innerHTML = ['__all__'].concat(cats).map(function (c) {
+      const label = c === '__all__' ? t('fa_filter_all') : c;
+      return '<button type="button" class="' + (c === activeCat ? 'active' : '') + '" data-cat="' + c + '">' + label + '</button>';
+    }).join('');
+    el.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        haptic('light');
+        activeCat = b.getAttribute('data-cat');
+        renderFilter();
+        renderFactors();
+      });
+    });
+  }
+
+  function renderFactors() {
+    const shown = activeCat === '__all__'
+      ? allFactors
+      : allFactors.filter(function (f) { return f.cat === activeCat; });
+
+    const listEl = document.getElementById('factor-list');
+    if (!shown.length) {
+      listEl.innerHTML = '<p style="color:var(--text-tertiary);font-size:12.5px;padding:10px 2px">' + t('fa_empty_filter') + '</p>';
+      return;
+    }
+
+    // Вклад показываем долей от суммы весов: абсолютный weight из ядра
+    // измеряется в разных единицах у разных факторов (сила тренда, отклонение
+    // RSI, нормированная гистограмма MACD) и сам по себе несопоставим.
+    const total = shown.reduce(function (s, f) { return s + (Number(f.weight) || 0); }, 0) || 1;
+
+    listEl.innerHTML = shown.map(function (f) {
+      const dir = f.dir === 'UP' ? 'up' : 'down';
+      const share = Math.round((Number(f.weight) || 0) / total * 100);
+      return '<div class="factor-card">' +
+        '<div class="factor-top">' +
+        '<div><p class="factor-cat">' + f.cat + '</p>' +
+        '<div class="factor-name-row"><div class="factor-dot ' + dir + '"></div><span class="factor-name">' + f.name + '</span></div></div>' +
+        '<div class="factor-weight"><div class="wv ' + dir + '">' + share + '%</div>' +
+        '<div class="wl">' + t('fa_contribution') + '</div></div>' +
+        '</div>' +
+        '<p class="factor-desc">' + f.desc + '</p>' +
+        '<div class="weight-track"><div class="weight-fill ' + dir + '" style="width:' + Math.max(2, share) + '%"></div></div>' +
+        '</div>';
+    }).join('');
   }
 
   document.getElementById('lock-btn').addEventListener('click', function () { haptic('light'); goTo('06-subscription.html'); });

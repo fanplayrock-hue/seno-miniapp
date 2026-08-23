@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Скринер</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="shared.js"></script>
+<script src="locales.js?v=121905a8"></script>
+<script src="shared.js?v=1a272991"></script>
 <style>
   :root {
     --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
@@ -24,6 +25,10 @@
     font-size: 12.5px; font-weight: 700; padding: 9px 4px; border-radius: 9px; transition: background 0.18s ease-out, color 0.18s ease-out; }
   .segment button.active { background: var(--accent); color: #04342C; }
   .segment button:active { opacity: 0.85; }
+
+  .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 11px 14px; color: var(--text-primary); font-family: var(--font); font-size: 13.5px; margin-bottom: 10px; }
+  .search-input:focus { outline: none; border-color: var(--accent); }
 
   .toolbar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
   .refresh-btn { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
@@ -76,6 +81,8 @@
     <button data-cat="position" data-i18n="scr_seg_position">Долгосрочная</button>
   </div>
 
+  <input class="search-input" id="search" data-i18n-placeholder="scr_search" placeholder="Поиск по тикеру">
+
   <div class="toolbar">
     <span class="cache-note" id="cache-note"></span>
     <button class="refresh-btn" id="refresh">
@@ -113,6 +120,29 @@
   const lockCard = document.getElementById('lock-card');
   const cacheNote = document.getElementById('cache-note');
   let currentCat = 'scalping';
+  let lastRows = [];
+  let lastTimeframe = '';
+
+  /**
+   * Фильтрация идёт по уже загруженным строкам, без повторного запроса:
+   * скринер отдаёт готовый снимок рынка, и дёргать сервер на каждую
+   * набранную букву незачем.
+   */
+  function applySearch() {
+    const q = (document.getElementById('search').value || '').trim().toUpperCase();
+    const rows = q ? lastRows.filter(function (r) { return r.symbol.indexOf(q) !== -1; }) : lastRows;
+
+    if (!rows.length) {
+      listEl.style.display = 'none';
+      emptyEl.style.display = 'flex';
+      emptyEl.querySelector('.t').textContent = q ? t('scr_nothing_found', { query: q }) : t('scr_empty_t');
+      emptyEl.querySelector('.d').textContent = q ? '' : t('scr_empty_d');
+      return;
+    }
+    emptyEl.style.display = 'none';
+    renderRows(rows, lastTimeframe);
+    listEl.style.display = 'flex';
+  }
 
   function pillHtml(sig, conf) {
     const cls = sig === 'BUY' ? 'buy' : sig === 'SELL' ? 'sell' : 'wait';
@@ -161,8 +191,9 @@
       return;
     }
 
-    renderRows(data.rows, data.timeframe);
-    listEl.style.display = 'flex';
+    lastRows = data.rows;
+    lastTimeframe = data.timeframe;
+    applySearch();
 
     if (data.locked) {
       const hidden = data.total - data.rows.length;
@@ -189,6 +220,8 @@
       setTimeout(function () { btn.classList.remove('spinning'); }, 500);
     });
   });
+
+  document.getElementById('search').addEventListener('input', applySearch);
 
   document.getElementById('lock-btn').addEventListener('click', function () {
     haptic('light');

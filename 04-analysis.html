@@ -6,7 +6,8 @@
 <title>Seno — Анализ монеты</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
-<script src="shared.js"></script>
+<script src="locales.js?v=121905a8"></script>
+<script src="shared.js?v=1a272991"></script>
 <style>
   :root {
     --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
@@ -51,7 +52,16 @@
   #chart-container { width: 100%; height: 100%; }
   .watermark { position: absolute; left: 10px; bottom: 10px; opacity: 0.15; width: 26px; height: 26px; pointer-events: none; z-index: 2; }
   .chart-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 12.5px; text-align: center; padding: 0 24px; }
-  .chart-hint { text-align: center; font-size: 10.5px; color: var(--text-tertiary); margin: 0 0 14px; }
+  .chart-hint { text-align: center; font-size: 10.5px; color: var(--text-tertiary); margin: 0 0 6px; }
+  .corr-line { text-align: center; font-size: 11px; color: var(--text-secondary); margin: 0 0 14px; }
+  .corr-line b { font-family: var(--font-mono); color: var(--text-primary); }
+
+  .ind-tabs { display: flex; gap: 6px; margin: 8px 0 8px; }
+  .ind-tabs button { flex: 1; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+    font-family: var(--font); font-size: 11.5px; font-weight: 700; padding: 7px 0; border-radius: 9px; }
+  .ind-tabs button.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
+  .ind-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; height: 130px; margin-bottom: 8px; }
+  #ind-container { width: 100%; height: 100%; }
 
   .params-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 4px 16px; margin-bottom: 14px; }
   .param-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
@@ -132,7 +142,15 @@
       <path d="M11 30L19 22L25 27L37 14" stroke="#F2F4F7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
+  <div class="ind-tabs" id="ind-tabs" style="display:none">
+    <button type="button" class="active" data-ind="none" data-i18n="an_indicator_none">Только цена</button>
+    <button type="button" data-ind="rsi">RSI</button>
+    <button type="button" data-ind="macd">MACD</button>
+  </div>
+  <div class="ind-wrap" id="ind-wrap" style="display:none"><div id="ind-container"></div></div>
+
   <p class="chart-hint" id="chart-hint" style="display:none">↔ pinch / drag</p>
+  <p class="corr-line" id="corr-line" style="display:none"></p>
 
   <div id="content-below" style="display:none">
     <div class="params-card" id="params-card"></div>
@@ -167,7 +185,10 @@
   let currentSymbol = params.get('symbol') || 'BTC/USDT';
   let currentTf = params.get('timeframe') || '4h';
   let chart = null, candleSeries = null, volumeSeries = null, priceLines = [];
+  let indChart = null, activeIndicator = 'none', lastData = null, liveTimer = null;
   const extraSeries = [];
+  const indSeries = [];
+  const LIVE_INTERVAL_MS = 5000;   // п. 3.9 ТЗ: живое обновление раз в 5 секунд
   const chartLibAvailable = typeof LightweightCharts !== 'undefined';
 
   function setActiveTf(tf) {
@@ -200,6 +221,85 @@
       if (!chart) return;
       chart.applyOptions({ width: document.getElementById('chart-container').clientWidth });
     });
+  }
+
+  /**
+   * Отдельный график под основным для RSI/MACD. Своя шкала нужна потому,
+   * что диапазоны несопоставимы с ценой: RSI живёт в 0..100, гистограмма
+   * MACD колеблется около нуля — на одной оси с ценой они бы схлопнулись
+   * в плоскую линию.
+   */
+  function ensureIndicatorChart() {
+    if (indChart || !chartLibAvailable) return;
+    const host = document.getElementById('ind-container');
+    indChart = LightweightCharts.createChart(host, {
+      layout: { background: { color: '#0B0B0E' }, textColor: '#8A8F9C', fontFamily: 'SF Mono, Consolas, monospace', fontSize: 9 },
+      grid: { vertLines: { color: '#14141A' }, horzLines: { color: '#14141A' } },
+      rightPriceScale: { borderColor: '#1E1E24' },
+      timeScale: { borderColor: '#1E1E24', timeVisible: true, secondsVisible: false },
+      handleScroll: true, handleScale: true,
+      width: host.clientWidth, height: host.clientHeight,
+    });
+
+    // Синхронный зум: двигаешь основной график — двигается и индикатор.
+    // Флаг syncing защищает от рекурсии, когда подписки дёргают друг друга.
+    let syncing = false;
+    const link = function (from, to) {
+      from.timeScale().subscribeVisibleLogicalRangeChange(function (range) {
+        if (syncing || !range) return;
+        syncing = true;
+        try { to.timeScale().setVisibleLogicalRange(range); } catch (e) {}
+        syncing = false;
+      });
+    };
+    if (chart) { link(chart, indChart); link(indChart, chart); }
+  }
+
+  function clearIndicatorSeries() {
+    indSeries.forEach(function (s) { try { indChart.removeSeries(s); } catch (e) {} });
+    indSeries.length = 0;
+  }
+
+  function renderIndicator(kind) {
+    const tabs = document.getElementById('ind-tabs');
+    tabs.querySelectorAll('button').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-ind') === kind);
+    });
+
+    const wrap = document.getElementById('ind-wrap');
+    if (kind === 'none' || !lastData || !chartLibAvailable) {
+      wrap.style.display = 'none';
+      return;
+    }
+    wrap.style.display = 'block';
+    ensureIndicatorChart();
+    if (!indChart) { wrap.style.display = 'none'; return; }
+    clearIndicatorSeries();
+
+    const c = lastData.chart;
+    if (kind === 'rsi' && c.rsi && c.rsi.length) {
+      const line = indChart.addLineSeries({ color: '#00E5C7', lineWidth: 1, priceLineVisible: false });
+      line.setData(c.rsi);
+      // Уровни 70/30 — стандартные границы перекупленности/перепроданности
+      line.createPriceLine({ price: 70, color: 'rgba(246,70,93,0.5)', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '70' });
+      line.createPriceLine({ price: 30, color: 'rgba(31,207,108,0.5)', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '30' });
+      indSeries.push(line);
+    } else if (kind === 'macd' && c.macd && c.macd.length) {
+      if (c.macd_hist && c.macd_hist.length) {
+        const hist = indChart.addHistogramSeries({ priceLineVisible: false });
+        hist.setData(c.macd_hist);
+        indSeries.push(hist);
+      }
+      const macdLine = indChart.addLineSeries({ color: '#00E5C7', lineWidth: 1, priceLineVisible: false });
+      macdLine.setData(c.macd);
+      indSeries.push(macdLine);
+      if (c.macd_signal && c.macd_signal.length) {
+        const sig = indChart.addLineSeries({ color: '#F0B90B', lineWidth: 1, priceLineVisible: false });
+        sig.setData(c.macd_signal);
+        indSeries.push(sig);
+      }
+    }
+    try { indChart.timeScale().setVisibleLogicalRange(chart.timeScale().getVisibleLogicalRange()); } catch (e) {}
   }
 
   function clearExtraSeries() {
@@ -364,6 +464,7 @@
     }
 
     const data = r.data;
+    lastData = data;
     document.getElementById('coin-price').textContent = '$' + fmtPrice(data.price);
     const chEl = document.getElementById('coin-change');
     if (data.change_24h !== null) {
@@ -385,8 +486,59 @@
 
     renderParams(data.setup);
     renderReasons(data.setup.reasons);
+    renderCorrelation(data.btc_correlation);
+    document.getElementById('ind-tabs').style.display = 'flex';
+    renderIndicator(activeIndicator);
     document.getElementById('content-below').style.display = 'block';
+    startLiveUpdates();
   }
+
+  function renderCorrelation(corr) {
+    const el = document.getElementById('corr-line');
+    if (corr === null || corr === undefined) { el.style.display = 'none'; return; }
+    let word;
+    if (corr >= 0.6) word = t('an_btc_corr_high');
+    else if (corr <= -0.3) word = t('an_btc_corr_inv');
+    else word = t('an_btc_corr_low');
+    el.innerHTML = t('an_btc_corr') + ': <b>' + corr.toFixed(2) + '</b> — ' + word;
+    el.style.display = 'block';
+  }
+
+  /**
+   * Живое обновление цены и последней свечи (п. 3.9 ТЗ).
+   * Полный анализ не пересчитываем: он тяжёлый (сеть + CPU на сервере),
+   * и дёргать его каждые 5 секунд для каждого пользователя — прямой путь
+   * в rate limit биржи. Обновляем только котировку и текущую свечу.
+   */
+  function startLiveUpdates() {
+    stopLiveUpdates();
+    liveTimer = setInterval(async function () {
+      if (document.hidden) return;   // вкладка скрыта — не жжём трафик
+      const r = await apiFetch('/api/analysis?' + qs({ symbol: currentSymbol, timeframe: currentTf }));
+      if (!r.ok || !r.data || !r.data.chart || !r.data.chart.candles.length) return;
+
+      const d = r.data;
+      document.getElementById('coin-price').textContent = '$' + fmtPrice(d.price);
+      const chEl = document.getElementById('coin-change');
+      if (d.change_24h !== null) {
+        chEl.textContent = (d.change_24h >= 0 ? '▲ ' : '▼ ') + fmtPct(d.change_24h);
+        chEl.className = 'coin-change ' + (d.change_24h >= 0 ? 'up' : 'down');
+      }
+      if (candleSeries) {
+        const last = d.chart.candles[d.chart.candles.length - 1];
+        // update() дорисовывает/заменяет последнюю свечу, не перестраивая
+        // весь ряд — иначе сбивался бы зум и позиция прокрутки.
+        try { candleSeries.update(last); } catch (e) {}
+      }
+      lastData = d;
+    }, LIVE_INTERVAL_MS);
+  }
+
+  function stopLiveUpdates() {
+    if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+  }
+
+  window.addEventListener('beforeunload', stopLiveUpdates);
 
   document.getElementById('lock-btn').addEventListener('click', function () { haptic('light'); goTo('06-subscription.html'); });
   document.getElementById('factors-link').addEventListener('click', function (e) {
@@ -400,6 +552,14 @@
       haptic('light');
       currentTf = p.getAttribute('data-tf');
       loadAnalysis();
+    });
+  });
+
+  document.querySelectorAll('#ind-tabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      haptic('light');
+      activeIndicator = b.getAttribute('data-ind');
+      renderIndicator(activeIndicator);
     });
   });
 

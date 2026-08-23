@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Seno — Новости</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="locales.js?v=121905a8"></script>
+<script src="shared.js?v=1a272991"></script>
+<style>
+  :root {
+    --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
+    --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --text-tertiary: #5A5F6B;
+    --accent: #00E5C7; --up: #1FCF6C; --down: #F6465D; --warn: #F0B90B;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
+  body { display: flex; justify-content: center; }
+  .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); }
+
+  .filters { display: flex; gap: 6px; margin-bottom: 14px; }
+  .filters button { flex: 1; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+    font-family: var(--font); font-size: 12px; font-weight: 700; padding: 8px 0; border-radius: 10px; }
+  .filters button.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
+
+  .item { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--border);
+    border-left-width: 3px; border-left-style: solid; border-radius: 0 14px 14px 0; padding: 12px 14px; margin-bottom: 8px; }
+  .item.positive { border-left-color: var(--up); }
+  .item.negative { border-left-color: var(--down); }
+  .item.neutral { border-left-color: var(--border); }
+  .item:active { background: var(--surface-raised); }
+  .item .title { font-size: 13.5px; font-weight: 600; line-height: 1.4; margin: 0 0 8px; }
+  .item .meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .item .src { font-size: 11px; color: var(--text-tertiary); }
+  .tag { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 7px; }
+  .tag.positive { background: rgba(31,207,108,0.16); color: var(--up); }
+  .tag.negative { background: rgba(246,70,93,0.16); color: var(--down); }
+  .tag.neutral { background: var(--surface-raised); color: var(--text-secondary); }
+
+  .notice { background: var(--surface); border: 1px solid var(--warn); border-radius: 14px; padding: 16px;
+    font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+  .empty-hint { font-size: 12.5px; color: var(--text-tertiary); padding: 40px 10px; text-align: center; }
+
+  .skeleton { height: 76px; border-radius: 14px; background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
+    background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; margin-bottom: 8px; }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+  #list { margin-bottom: 90px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="app-header"></div>
+
+  <div class="filters" id="filters" style="display:none">
+    <button type="button" class="active" data-f="all" data-i18n="all">Все</button>
+    <button type="button" data-f="positive" data-i18n="news_positive">Позитив</button>
+    <button type="button" data-f="negative" data-i18n="news_negative">Негатив</button>
+  </div>
+
+  <div id="skeleton"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+  <div id="list"></div>
+</div>
+
+<script>
+  renderHeader({ title: t('news_word'), showBack: true, backHref: '02-main-menu.html' });
+
+  let allItems = [];
+  let filter = 'all';
+
+  function render() {
+    const items = filter === 'all' ? allItems : allItems.filter(function (i) { return i.sentiment === filter; });
+    const el = document.getElementById('list');
+    if (!items.length) {
+      el.innerHTML = '<p class="empty-hint">' + t('news_empty') + '</p>';
+      return;
+    }
+    el.innerHTML = items.map(function (n) {
+      const when = n.published_at ? dateRu(n.published_at) : '';
+      // rel=noopener обязателен для target=_blank: без него открытая
+      // вкладка получает доступ к window.opener.
+      return '<a class="item ' + n.sentiment + '" href="' + n.url + '" target="_blank" rel="noopener noreferrer">' +
+        '<p class="title">' + n.title + '</p>' +
+        '<div class="meta"><span class="src">' + [n.source, when].filter(Boolean).join(' · ') + '</span>' +
+        '<span class="tag ' + n.sentiment + '">' + t('news_' + n.sentiment) + '</span></div></a>';
+    }).join('');
+  }
+
+  document.querySelectorAll('#filters button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      haptic('light');
+      document.querySelectorAll('#filters button').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      filter = b.getAttribute('data-f');
+      render();
+    });
+  });
+
+  async function load() {
+    const r = await apiFetch('/api/news');
+    document.getElementById('skeleton').style.display = 'none';
+
+    if (!r.ok || !r.data) {
+      document.getElementById('list').innerHTML = '<p class="empty-hint">' + t('news_load_error') + '</p>';
+      return;
+    }
+    // Отсутствие ключа — это конфигурация, а не пустой раздел: говорим прямо,
+    // что нужно сделать, вместо безликого «новостей нет» (требование п. 3.11 ТЗ).
+    if (!r.data.has_key) {
+      document.getElementById('list').innerHTML = '<div class="notice">' + t('news_no_key') + '</div>';
+      return;
+    }
+    allItems = r.data.items || [];
+    document.getElementById('filters').style.display = allItems.length ? 'flex' : 'none';
+    render();
+  }
+
+  load();
+</script>
+</body>
+</html>

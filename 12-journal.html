@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Seno — Журнал сигналов</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="locales.js?v=121905a8"></script>
+<script src="shared.js?v=1a272991"></script>
+<style>
+  :root {
+    --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
+    --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --text-tertiary: #5A5F6B;
+    --accent: #00E5C7; --up: #1FCF6C; --down: #F6465D;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    --font-mono: "SF Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); }
+  body { display: flex; justify-content: center; }
+  .app-shell { width: 100%; max-width: 420px; min-height: 100vh; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); }
+
+  .subtitle { font-size: 12px; color: var(--text-tertiary); margin: -8px 0 16px 2px; }
+
+  .entry { background: var(--surface); border: 1px solid var(--border); border-left-width: 3px; border-left-style: solid;
+    border-radius: 0 14px 14px 0; padding: 12px 14px; margin-bottom: 8px; }
+  .entry.buy { border-left-color: var(--up); }
+  .entry.sell { border-left-color: var(--down); }
+  .entry.wait { border-left-color: var(--border); opacity: 0.65; }
+
+  .e-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .e-sym { font-size: 14.5px; font-weight: 700; }
+  .e-tf { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-tertiary);
+    background: var(--surface-raised); border: 1px solid var(--border); padding: 2px 6px; border-radius: 6px; margin-left: 6px; }
+  .e-date { font-size: 10.5px; color: var(--text-tertiary); }
+  .pill { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 7px; }
+  .pill.buy { background: var(--up); color: #04342C; }
+  .pill.sell { background: var(--down); color: #4A1013; }
+  .pill.wait { background: var(--surface-raised); color: var(--text-secondary); border: 1px solid var(--border); }
+
+  .e-levels { display: flex; flex-wrap: wrap; gap: 10px; font-family: var(--font-mono); font-size: 11.5px; }
+  .e-levels span { color: var(--text-secondary); }
+  .e-levels b { color: var(--text-primary); font-weight: 700; }
+  .e-levels .sl b { color: var(--down); }
+  .e-levels .tp b { color: var(--up); }
+
+  .empty { text-align: center; padding: 60px 30px; color: var(--text-secondary); }
+  .empty svg { width: 38px; height: 38px; opacity: 0.4; margin-bottom: 14px; }
+  .empty p { font-size: 13px; line-height: 1.5; margin: 0; }
+
+  .skeleton { height: 84px; border-radius: 14px; background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 37%, var(--surface) 63%);
+    background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; margin-bottom: 8px; }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+  #list { margin-bottom: 90px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div id="app-header"></div>
+  <p class="subtitle" data-i18n="jr_subtitle">Здесь сохраняется каждый открытый вами анализ</p>
+
+  <div id="skeleton"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+  <div id="list" style="display:none"></div>
+
+  <div class="empty" id="empty" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M6 4H18V20L12 16.5L6 20V4Z" stroke="#5A5F6B" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    <p data-i18n="jr_empty">Пока пусто — откройте анализ любой монеты, и он появится здесь</p>
+  </div>
+</div>
+
+<script>
+  renderHeader({ title: t('jr_word'), showBack: true, backHref: '02-main-menu.html' });
+  renderBottomNav(null);
+
+  function dateTime(iso) {
+    const d = new Date(iso);
+    const loc = LOCALE_MAP[currentLang()];
+    return d.toLocaleDateString(loc, { day: '2-digit', month: 'short' }) + ' ' +
+           d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function load() {
+    const r = await apiFetch('/api/journal');
+    document.getElementById('skeleton').style.display = 'none';
+
+    if (!r.ok || !r.data) {
+      document.getElementById('empty').style.display = 'block';
+      document.getElementById('empty').querySelector('p').textContent = t('jr_load_error');
+      return;
+    }
+    const items = r.data.items || [];
+    if (!items.length) {
+      document.getElementById('empty').style.display = 'block';
+      return;
+    }
+
+    const listEl = document.getElementById('list');
+    listEl.style.display = 'block';
+    listEl.innerHTML = items.map(function (it) {
+      const cls = it.signal === 'BUY' ? 'buy' : it.signal === 'SELL' ? 'sell' : 'wait';
+      let levels = '';
+      if (it.entry) {
+        levels += '<span>' + t('an_entry') + ' <b>' + fmtPrice(it.entry) + '</b></span>';
+        if (it.sl) levels += '<span class="sl">SL <b>' + fmtPrice(it.sl) + '</b></span>';
+        (it.take_profits || []).forEach(function (tp, i) {
+          levels += '<span class="tp">TP' + (i + 1) + ' <b>' + fmtPrice(tp) + '</b></span>';
+        });
+        if (it.rr) levels += '<span>R/R <b>1:' + it.rr + '</b></span>';
+      } else {
+        levels = '<span>' + t('an_no_setup') + '</span>';
+      }
+      return '<div class="entry ' + cls + '" data-symbol="' + it.symbol + '" data-tf="' + it.timeframe + '">' +
+        '<div class="e-top"><div><span class="e-sym">' + it.symbol.split('/')[0] + '</span>' +
+        '<span class="e-tf">' + it.timeframe + '</span></div>' +
+        '<span class="pill ' + cls + '">' + it.signal + ' ' + it.confidence + '%</span></div>' +
+        '<div class="e-levels">' + levels + '</div>' +
+        '<div class="e-date" style="margin-top:8px">' + dateTime(it.created_at) + '</div></div>';
+    }).join('');
+
+    listEl.querySelectorAll('.entry').forEach(function (el) {
+      el.addEventListener('click', function () {
+        haptic('light');
+        goTo('04-analysis.html?' + qs({ symbol: el.getAttribute('data-symbol'), timeframe: el.getAttribute('data-tf') }));
+      });
+    });
+  }
+
+  load();
+</script>
+</body>
+</html>
