@@ -6,8 +6,8 @@
 <title>Seno — Анализ монеты</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
-<script src="locales.js?v=121905a8"></script>
-<script src="shared.js?v=1a272991"></script>
+<script src="locales.js?v=c99b80b4"></script>
+<script src="shared.js?v=2a001283"></script>
 <style>
   :root {
     --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
@@ -92,8 +92,19 @@
   .picker-search { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px;
     color: var(--text-primary); font-family: var(--font); font-size: 14px; margin-bottom: 12px; width: 100%; }
   .picker-list { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-  .picker-item { padding: 12px 10px; border-radius: 10px; font-size: 14.5px; font-weight: 700; }
+  .picker-item { display: flex; align-items: center; gap: 10px; padding: 11px 10px; border-radius: 10px; }
   .picker-item:active { background: var(--surface-raised); }
+  .picker-hint { padding: 22px 10px; text-align: center; font-size: 12.5px; color: var(--text-tertiary); line-height: 1.5; }
+  .res-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .res-base { font-size: 14.5px; font-weight: 700; }
+  .res-pair { font-size: 10.5px; color: var(--text-tertiary); font-family: var(--font-mono); }
+  .res-right { flex: none; text-align: right; display: flex; flex-direction: column; gap: 2px; }
+  .res-price { font-family: var(--font-mono); font-size: 13px; }
+  .res-ch { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; }
+  .res-ch.up { color: var(--up); } .res-ch.down { color: var(--down); }
+  .res-star { flex: none; width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--surface-raised); color: var(--text-tertiary); font-size: 15px; line-height: 1; }
+  .res-star.on { color: var(--warn); border-color: var(--warn); }
   .picker-close { text-align: center; font-size: 13px; color: var(--text-secondary); padding: 10px 0 2px; }
 </style>
 </head>
@@ -188,7 +199,8 @@
   let indChart = null, activeIndicator = 'none', lastData = null, liveTimer = null;
   const extraSeries = [];
   const indSeries = [];
-  const LIVE_INTERVAL_MS = 5000;   // п. 3.9 ТЗ: живое обновление раз в 5 секунд
+  const LIVE_INTERVAL_MS = 5000;   // живое обновление раз в 5 секунд
+  const VISIBLE_CANDLES = 60;      // сколько свечей показываем по умолчанию
   const chartLibAvailable = typeof LightweightCharts !== 'undefined';
 
   function setActiveTf(tf) {
@@ -200,13 +212,26 @@
   function ensureChart() {
     if (chart || !chartLibAvailable) return;
     chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
-      layout: { background: { color: '#0B0B0E' }, textColor: '#8A8F9C', fontFamily: 'SF Mono, Consolas, monospace', fontSize: 10 },
+      layout: {
+        background: { color: '#0B0B0E' }, textColor: '#8A8F9C',
+        fontFamily: 'SF Mono, Consolas, monospace', fontSize: 10,
+        attributionLogo: false,          // убираем логотип TradingView с графика
+      },
       grid: { vertLines: { color: '#14141A' }, horzLines: { color: '#14141A' } },
-      rightPriceScale: { borderColor: '#1E1E24' },
-      timeScale: { borderColor: '#1E1E24', timeVisible: true, secondsVisible: false },
+      rightPriceScale: {
+        borderColor: '#1E1E24',
+        // Без отступов шкала цен наезжала на свечи, а верхние/нижние
+        // экстремумы упирались в край области построения.
+        scaleMargins: { top: 0.12, bottom: 0.28 },
+      },
+      timeScale: {
+        borderColor: '#1E1E24', timeVisible: true, secondsVisible: false,
+        rightOffset: 4, barSpacing: 7, minBarSpacing: 2,
+      },
       crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-      handleScroll: true,
-      handleScale: true,
+      // Жесты: перетаскивание и pinch-zoom на тач-экране
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
       width: document.getElementById('chart-container').clientWidth,
       height: document.getElementById('chart-container').clientHeight,
     });
@@ -354,12 +379,25 @@
       (data.smc.bear_fvgs || []).forEach(function (z) { addZone(z.time_start, z.time_end, z.top, z.bottom, 'rgba(246,70,93,0.35)', 'FVG'); });
     }
 
+    // Подписи паттернов раньше налезали друг на друга и обрезались краем:
+    // на каждую линию вешался полный текст. Теперь — короткая метка, и не
+    // больше одной подписи в одной точке времени.
+    const labelledTimes = new Set();
     (data.patterns || []).forEach(function (p) {
+      const short = shortPatternLabel(p.label);
       (p.lines || []).forEach(function (line) {
         if (!line.length) return;
         const s = chart.addLineSeries({ color: '#F0B90B', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         s.setData(line.map(function (pt) { return { time: pt.time, value: pt.price }; }));
-        s.setMarkers([{ time: line[line.length - 1].time, position: 'inBar', color: '#F0B90B', shape: 'circle', text: p.label, size: 0 }]);
+
+        const at = line[line.length - 1].time;
+        if (!labelledTimes.has(at)) {
+          labelledTimes.add(at);
+          s.setMarkers([{
+            time: at, position: 'aboveBar', color: '#F0B90B',
+            shape: 'circle', text: short, size: 1,
+          }]);
+        }
         extraSeries.push(s);
       });
     });
@@ -375,7 +413,34 @@
       });
     }
 
-    chart.timeScale().fitContent();
+    // Показываем последние ~60 свечей, а не всю историю: при fitContent()
+    // сотни баров сжимались в нечитаемую полосу. Прокрутка влево открывает
+    // более старые данные.
+    const total = data.chart.candles.length;
+    if (total > VISIBLE_CANDLES) {
+      chart.timeScale().setVisibleLogicalRange({ from: total - VISIBLE_CANDLES, to: total + 3 });
+    } else {
+      chart.timeScale().fitContent();
+    }
+  }
+
+  /**
+   * Короткая метка паттерна для графика: полные названия («Двойная вершина»,
+   * «Перевёрнутая голова и плечи») не помещаются и перекрывают друг друга.
+   */
+  function shortPatternLabel(label) {
+    if (!label) return '';
+    const map = {
+      'Двойная вершина': '2T', 'Двойное дно': '2B',
+      'Голова и плечи': 'H&S', 'Перевёрнутая голова и плечи': 'iH&S',
+      'Double Top': '2T', 'Double Bottom': '2B',
+      'Head and Shoulders': 'H&S', 'Inverse Head and Shoulders': 'iH&S',
+    };
+    if (map[label]) return map[label];
+    // Треугольники, флаги и прочее: аббревиатура из первых букв слов
+    const words = String(label).split(/[\s-]+/).filter(Boolean);
+    if (words.length > 1) return words.map(function (w) { return w[0].toUpperCase(); }).join('');
+    return label.length > 8 ? label.slice(0, 8) + '…' : label;
   }
 
   function renderVerdict(setup) {
@@ -456,6 +521,13 @@
       document.getElementById('lock-card').style.display = 'block';
       document.getElementById('verdict-dir').textContent = t('an_locked_short');
       document.getElementById('verdict-conf').textContent = '';
+      return;
+    }
+    // Свежелистнутая пара: торгуется, но истории мало. Говорим что именно
+    // не так и что делать, вместо общего «нет данных».
+    if (r.status === 422 && r.data) {
+      document.getElementById('chart-loading').textContent =
+        t('an_insufficient', { n: r.data.candles, need: r.data.required });
       return;
     }
     if (!r.ok || !r.data) {
@@ -565,40 +637,106 @@
 
   function refreshAnalysis() { haptic('medium'); loadAnalysis(); }
 
+  // Поиск идёт по ВСЕМ парам биржи через /api/search, а не по watchlist:
+  // watchlist — это то, что сканирует скринер, и он намеренно маленький.
   const pickerOverlay = document.getElementById('picker-overlay');
   const pickerList = document.getElementById('picker-list');
   const pickerSearch = document.getElementById('picker-search');
-  let allSymbols = [];
+  let searchTimer = null;
+  let marketStats = null;
 
   async function openPicker() {
     haptic('light');
     pickerOverlay.style.display = 'flex';
     pickerSearch.value = '';
     pickerSearch.focus();
-    if (!allSymbols.length) {
-      const r = await apiFetch('/api/symbols');
-      if (r.ok && r.data) allSymbols = r.data.symbols;
+    renderHint(t('search_min_chars'));
+
+    if (!marketStats) {
+      const r = await apiFetch('/api/markets/stats');
+      if (r.ok && r.data) {
+        marketStats = r.data;
+        renderHint(t('search_all_pairs', {
+          n: marketStats.total_pairs, ex: exchangeName(marketStats.exchange),
+        }));
+      }
+    } else {
+      renderHint(t('search_all_pairs', {
+        n: marketStats.total_pairs, ex: exchangeName(marketStats.exchange),
+      }));
     }
-    renderPickerList(allSymbols);
   }
 
-  function renderPickerList(symbols) {
-    pickerList.innerHTML = symbols.map(function (s) {
-      return '<div class="picker-item" data-symbol="' + s.symbol + '">' + s.base + ' <span style="color:var(--text-tertiary);font-weight:400">/USDT</span></div>';
-    }).join('') || '<div class="picker-item" style="color:var(--text-tertiary);font-weight:400">' + t('an_picker_empty') + '</div>';
-    pickerList.querySelectorAll('.picker-item[data-symbol]').forEach(function (item) {
-      item.addEventListener('click', function () {
+  function renderHint(text) {
+    pickerList.innerHTML = '<div class="picker-hint">' + escapeHtml(text) + '</div>';
+  }
+
+  function renderResults(data) {
+    const results = data.results || [];
+    if (!results.length) {
+      renderHint(t('search_nothing', { q: data.query }));
+      return;
+    }
+    pickerList.innerHTML = results.map(function (s) {
+      const price = s.price !== null && s.price !== undefined ? '$' + fmtPrice(s.price) : '';
+      const ch = s.change_24h !== null && s.change_24h !== undefined
+        ? '<span class="res-ch ' + (s.change_24h >= 0 ? 'up' : 'down') + '">' + fmtPct(s.change_24h) + '</span>' : '';
+      return '<div class="picker-item" data-symbol="' + escapeAttr(s.symbol) + '">' +
+        '<div class="res-left"><span class="res-base">' + escapeHtml(s.base) + '</span>' +
+        '<span class="res-pair">' + escapeHtml(s.symbol) + '</span></div>' +
+        '<div class="res-right"><span class="res-price">' + price + '</span>' + ch + '</div>' +
+        '<button type="button" class="res-star' + (s.in_watchlist ? ' on' : '') + '" ' +
+        'data-star="' + escapeAttr(s.symbol) + '" title="' + t('search_add_watchlist') + '">★</button>' +
+        '</div>';
+    }).join('');
+
+    pickerList.querySelectorAll('.picker-item').forEach(function (item) {
+      item.addEventListener('click', function (e) {
+        if (e.target.classList.contains('res-star')) return;   // звезда — отдельное действие
         haptic('light');
         currentSymbol = item.getAttribute('data-symbol');
         pickerOverlay.style.display = 'none';
         loadAnalysis();
       });
     });
+
+    pickerList.querySelectorAll('.res-star').forEach(function (star) {
+      star.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        haptic('light');
+        const r = await apiFetch('/api/watchlist', {
+          method: 'POST',
+          body: JSON.stringify({ symbol: star.getAttribute('data-star'), action: 'toggle' }),
+        });
+        if (r.status === 409 && r.data) {
+          notify('error');
+          alert(r.data.error === 'watchlist_full'
+            ? t('search_watchlist_full', { max: r.data.max })
+            : t('search_watchlist_min'));
+          return;
+        }
+        if (r.ok && r.data) {
+          star.classList.toggle('on', r.data.in_watchlist);
+          notify('success');
+        }
+      });
+    });
   }
 
   pickerSearch.addEventListener('input', function () {
-    const q = pickerSearch.value.trim().toUpperCase();
-    renderPickerList(allSymbols.filter(function (s) { return s.base.indexOf(q) !== -1; }));
+    const q = pickerSearch.value.trim();
+    clearTimeout(searchTimer);
+    if (q.length < 2) {
+      renderHint(marketStats
+        ? t('search_all_pairs', { n: marketStats.total_pairs, ex: exchangeName(marketStats.exchange) })
+        : t('search_min_chars'));
+      return;
+    }
+    // Дебаунс: запрос уходит на сервер, дёргать его на каждую букву незачем.
+    searchTimer = setTimeout(async function () {
+      const r = await apiFetch('/api/search?' + qs({ q: q }));
+      if (r.ok && r.data) renderResults(r.data);
+    }, 250);
   });
 
   document.getElementById('coin-pick').addEventListener('click', openPicker);

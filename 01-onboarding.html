@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Онбординг</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="locales.js?v=121905a8"></script>
-<script src="shared.js?v=1a272991"></script>
+<script src="locales.js?v=c99b80b4"></script>
+<script src="shared.js?v=2a001283"></script>
 <style>
   :root {
     --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
@@ -132,9 +132,9 @@
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="stat-num" data-i18n="onb_stat1">19</div><div class="stat-label" data-i18n="onb_stat1_l">монет</div></div>
-    <div class="stat"><div class="stat-num" data-i18n="onb_stat2">3</div><div class="stat-label" data-i18n="onb_stat2_l">биржи</div></div>
-    <div class="stat"><div class="stat-num" data-i18n="onb_stat3">3</div><div class="stat-label" data-i18n="onb_stat3_l">стратегии</div></div>
+    <div class="stat"><div class="stat-num" id="stat-pairs">—</div><div class="stat-label" data-i18n="onb_stat1_l">монет</div></div>
+    <div class="stat"><div class="stat-num" id="stat-exchanges">3</div><div class="stat-label" data-i18n="onb_stat2_l">биржи</div></div>
+    <div class="stat"><div class="stat-num" id="stat-timeframes">3</div><div class="stat-label" data-i18n="onb_stat3_l">таймфрейма</div></div>
   </div>
 
   <p class="disclaimer" data-i18n="onb_disclaimer">Аналитика не является инвестиционной рекомендацией. Торговля криптовалютой сопряжена с риском потери средств.</p>
@@ -158,6 +158,16 @@
     e.preventDefault();
     proceed();
   });
+
+  // Цифры в статистике тянем с сервера, а не пишем в вёрстке: после
+  // подключения поиска по всей бирже захардкоженные «19 монет» стали ложью.
+  (async function loadStats() {
+    const r = await apiFetch('/api/markets/stats');
+    if (!r.ok || !r.data) return;
+    document.getElementById('stat-pairs').textContent = r.data.total_pairs || '—';
+    document.getElementById('stat-exchanges').textContent = r.data.exchanges;
+    document.getElementById('stat-timeframes').textContent = r.data.timeframes;
+  })();
 
   var carousel = document.getElementById('carousel');
   var dots = document.getElementById('dots').querySelectorAll('.dot');

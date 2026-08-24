@@ -128,6 +128,25 @@ function tp(key, n, vars) {
   return t(chosen, Object.assign({ n: n }, vars || {}));
 }
 
+/**
+ * Экранирование для вставки через innerHTML. Обязательно для любых данных
+ * из внешних источников (заголовки новостей из чужих RSS, имена пользователей):
+ * без него подставленный в ленту <img onerror=...> выполнится в контексте
+ * Mini App, где доступен initData.
+ */
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/** То же для значения атрибута; javascript:-ссылки отбрасываем. */
+function escapeAttr(value) {
+  const raw = String(value == null ? '' : value).trim();
+  if (/^(javascript|data|vbscript):/i.test(raw)) return '#';
+  return escapeHtml(raw);
+}
+
 // Названия бирж — торговые марки с собственным написанием, а не слова
 // для перевода: автокапитализация превращала бы OKX в «Okx».
 const EXCHANGE_NAMES = { bybit: 'Bybit', okx: 'OKX', binance: 'Binance' };

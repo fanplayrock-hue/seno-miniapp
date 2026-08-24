@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Новости</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="locales.js?v=121905a8"></script>
-<script src="shared.js?v=1a272991"></script>
+<script src="locales.js?v=c99b80b4"></script>
+<script src="shared.js?v=2a001283"></script>
 <style>
   :root {
     --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
@@ -39,6 +39,11 @@
   .tag.negative { background: rgba(246,70,93,0.16); color: var(--down); }
   .tag.neutral { background: var(--surface-raised); color: var(--text-secondary); }
 
+  .coin-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 11px 14px; color: var(--text-primary); font-family: var(--font); font-size: 13.5px; margin-bottom: 10px; }
+  .coin-input:focus { outline: none; border-color: var(--accent); }
+  .stale { font-size: 11px; color: var(--warn); margin: 0 0 10px 2px; line-height: 1.4; }
+
   .notice { background: var(--surface); border: 1px solid var(--warn); border-radius: 14px; padding: 16px;
     font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
   .empty-hint { font-size: 12.5px; color: var(--text-tertiary); padding: 40px 10px; text-align: center; }
@@ -54,11 +59,15 @@
 
   <div id="app-header"></div>
 
+  <input class="coin-input" id="coin-filter" data-i18n-placeholder="news_filter_coin" placeholder="Фильтр по монете">
+
   <div class="filters" id="filters" style="display:none">
     <button type="button" class="active" data-f="all" data-i18n="all">Все</button>
     <button type="button" data-f="positive" data-i18n="news_positive">Позитив</button>
     <button type="button" data-f="negative" data-i18n="news_negative">Негатив</button>
   </div>
+
+  <p class="stale" id="stale" style="display:none"></p>
 
   <div id="skeleton"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
   <div id="list"></div>
@@ -77,15 +86,28 @@
       el.innerHTML = '<p class="empty-hint">' + t('news_empty') + '</p>';
       return;
     }
-    el.innerHTML = items.map(function (n) {
+    // Показываем только заголовок и ссылку на первоисточник — тексты статей
+    // не копируем, это чужой контент.
+    el.innerHTML = items.map(function (n, i) {
       const when = n.published_at ? dateRu(n.published_at) : '';
-      // rel=noopener обязателен для target=_blank: без него открытая
-      // вкладка получает доступ к window.opener.
-      return '<a class="item ' + n.sentiment + '" href="' + n.url + '" target="_blank" rel="noopener noreferrer">' +
-        '<p class="title">' + n.title + '</p>' +
-        '<div class="meta"><span class="src">' + [n.source, when].filter(Boolean).join(' · ') + '</span>' +
+      return '<a class="item ' + n.sentiment + '" href="' + escapeAttr(n.url) + '" data-i="' + i + '" ' +
+        'target="_blank" rel="noopener noreferrer">' +
+        '<p class="title">' + escapeHtml(n.title) + '</p>' +
+        '<div class="meta"><span class="src">' + escapeHtml([n.source, when].filter(Boolean).join(' · ')) + '</span>' +
         '<span class="tag ' + n.sentiment + '">' + t('news_' + n.sentiment) + '</span></div></a>';
     }).join('');
+
+    el.querySelectorAll('.item').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        const url = a.getAttribute('href');
+        if (tg && tg.openLink) {
+          // Внутри Telegram target=_blank не работает — нужен openLink.
+          e.preventDefault();
+          haptic('light');
+          try { tg.openLink(url); } catch (err) { window.open(url, '_blank', 'noopener'); }
+        }
+      });
+    });
   }
 
   document.querySelectorAll('#filters button').forEach(function (b) {
@@ -98,24 +120,45 @@
     });
   });
 
+  let coinQuery = '';
+
   async function load() {
-    const r = await apiFetch('/api/news');
+    document.getElementById('skeleton').style.display = 'block';
+    const r = await apiFetch('/api/news' + (coinQuery ? '?' + qs({ coin: coinQuery }) : ''));
     document.getElementById('skeleton').style.display = 'none';
 
     if (!r.ok || !r.data) {
       document.getElementById('list').innerHTML = '<p class="empty-hint">' + t('news_load_error') + '</p>';
+      document.getElementById('filters').style.display = 'none';
       return;
     }
-    // Отсутствие ключа — это конфигурация, а не пустой раздел: говорим прямо,
-    // что нужно сделать, вместо безликого «новостей нет» (требование п. 3.11 ТЗ).
-    if (!r.data.has_key) {
-      document.getElementById('list').innerHTML = '<div class="notice">' + t('news_no_key') + '</div>';
-      return;
-    }
+
     allItems = r.data.items || [];
+    // sources_ok == 0 при непустом списке означает, что все ленты сейчас
+    // недоступны и мы показываем прошлый кэш — говорим об этом честно.
+    const stale = document.getElementById('stale');
+    if (r.data.sources_ok === 0 && allItems.length) {
+      stale.textContent = t('news_stale');
+      stale.style.display = 'block';
+    } else {
+      stale.style.display = 'none';
+    }
+
     document.getElementById('filters').style.display = allItems.length ? 'flex' : 'none';
     render();
   }
+
+  let coinTimer = null;
+  document.getElementById('coin-filter').addEventListener('input', function () {
+    // Фильтрация по монете идёт на сервере, поэтому не дёргаем API
+    // на каждую букву.
+    clearTimeout(coinTimer);
+    const value = this.value.trim();
+    coinTimer = setTimeout(function () {
+      coinQuery = value.length >= 2 ? value : '';
+      load();
+    }, 350);
+  });
 
   load();
 </script>
