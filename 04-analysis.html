@@ -6,7 +6,7 @@
 <title>Seno — Анализ монеты</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
-<script src="locales.js?v=c99b80b4"></script>
+<script src="locales.js?v=5773e547"></script>
 <script src="shared.js?v=2a001283"></script>
 <style>
   :root {
@@ -56,12 +56,6 @@
   .corr-line { text-align: center; font-size: 11px; color: var(--text-secondary); margin: 0 0 14px; }
   .corr-line b { font-family: var(--font-mono); color: var(--text-primary); }
 
-  .ind-tabs { display: flex; gap: 6px; margin: 8px 0 8px; }
-  .ind-tabs button { flex: 1; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
-    font-family: var(--font); font-size: 11.5px; font-weight: 700; padding: 7px 0; border-radius: 9px; }
-  .ind-tabs button.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
-  .ind-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; height: 130px; margin-bottom: 8px; }
-  #ind-container { width: 100%; height: 100%; }
 
   .params-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 4px 16px; margin-bottom: 14px; }
   .param-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
@@ -102,9 +96,6 @@
   .res-price { font-family: var(--font-mono); font-size: 13px; }
   .res-ch { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; }
   .res-ch.up { color: var(--up); } .res-ch.down { color: var(--down); }
-  .res-star { flex: none; width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border);
-    background: var(--surface-raised); color: var(--text-tertiary); font-size: 15px; line-height: 1; }
-  .res-star.on { color: var(--warn); border-color: var(--warn); }
   .picker-close { text-align: center; font-size: 13px; color: var(--text-secondary); padding: 10px 0 2px; }
 </style>
 </head>
@@ -153,13 +144,6 @@
       <path d="M11 30L19 22L25 27L37 14" stroke="#F2F4F7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
-  <div class="ind-tabs" id="ind-tabs" style="display:none">
-    <button type="button" class="active" data-ind="none" data-i18n="an_indicator_none">Только цена</button>
-    <button type="button" data-ind="rsi">RSI</button>
-    <button type="button" data-ind="macd">MACD</button>
-  </div>
-  <div class="ind-wrap" id="ind-wrap" style="display:none"><div id="ind-container"></div></div>
-
   <p class="chart-hint" id="chart-hint" style="display:none">↔ pinch / drag</p>
   <p class="corr-line" id="corr-line" style="display:none"></p>
 
@@ -196,9 +180,8 @@
   let currentSymbol = params.get('symbol') || 'BTC/USDT';
   let currentTf = params.get('timeframe') || '4h';
   let chart = null, candleSeries = null, volumeSeries = null, priceLines = [];
-  let indChart = null, activeIndicator = 'none', lastData = null, liveTimer = null;
+  let lastData = null, liveTimer = null;
   const extraSeries = [];
-  const indSeries = [];
   const LIVE_INTERVAL_MS = 5000;   // живое обновление раз в 5 секунд
   const VISIBLE_CANDLES = 60;      // сколько свечей показываем по умолчанию
   const chartLibAvailable = typeof LightweightCharts !== 'undefined';
@@ -246,85 +229,6 @@
       if (!chart) return;
       chart.applyOptions({ width: document.getElementById('chart-container').clientWidth });
     });
-  }
-
-  /**
-   * Отдельный график под основным для RSI/MACD. Своя шкала нужна потому,
-   * что диапазоны несопоставимы с ценой: RSI живёт в 0..100, гистограмма
-   * MACD колеблется около нуля — на одной оси с ценой они бы схлопнулись
-   * в плоскую линию.
-   */
-  function ensureIndicatorChart() {
-    if (indChart || !chartLibAvailable) return;
-    const host = document.getElementById('ind-container');
-    indChart = LightweightCharts.createChart(host, {
-      layout: { background: { color: '#0B0B0E' }, textColor: '#8A8F9C', fontFamily: 'SF Mono, Consolas, monospace', fontSize: 9 },
-      grid: { vertLines: { color: '#14141A' }, horzLines: { color: '#14141A' } },
-      rightPriceScale: { borderColor: '#1E1E24' },
-      timeScale: { borderColor: '#1E1E24', timeVisible: true, secondsVisible: false },
-      handleScroll: true, handleScale: true,
-      width: host.clientWidth, height: host.clientHeight,
-    });
-
-    // Синхронный зум: двигаешь основной график — двигается и индикатор.
-    // Флаг syncing защищает от рекурсии, когда подписки дёргают друг друга.
-    let syncing = false;
-    const link = function (from, to) {
-      from.timeScale().subscribeVisibleLogicalRangeChange(function (range) {
-        if (syncing || !range) return;
-        syncing = true;
-        try { to.timeScale().setVisibleLogicalRange(range); } catch (e) {}
-        syncing = false;
-      });
-    };
-    if (chart) { link(chart, indChart); link(indChart, chart); }
-  }
-
-  function clearIndicatorSeries() {
-    indSeries.forEach(function (s) { try { indChart.removeSeries(s); } catch (e) {} });
-    indSeries.length = 0;
-  }
-
-  function renderIndicator(kind) {
-    const tabs = document.getElementById('ind-tabs');
-    tabs.querySelectorAll('button').forEach(function (b) {
-      b.classList.toggle('active', b.getAttribute('data-ind') === kind);
-    });
-
-    const wrap = document.getElementById('ind-wrap');
-    if (kind === 'none' || !lastData || !chartLibAvailable) {
-      wrap.style.display = 'none';
-      return;
-    }
-    wrap.style.display = 'block';
-    ensureIndicatorChart();
-    if (!indChart) { wrap.style.display = 'none'; return; }
-    clearIndicatorSeries();
-
-    const c = lastData.chart;
-    if (kind === 'rsi' && c.rsi && c.rsi.length) {
-      const line = indChart.addLineSeries({ color: '#00E5C7', lineWidth: 1, priceLineVisible: false });
-      line.setData(c.rsi);
-      // Уровни 70/30 — стандартные границы перекупленности/перепроданности
-      line.createPriceLine({ price: 70, color: 'rgba(246,70,93,0.5)', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '70' });
-      line.createPriceLine({ price: 30, color: 'rgba(31,207,108,0.5)', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '30' });
-      indSeries.push(line);
-    } else if (kind === 'macd' && c.macd && c.macd.length) {
-      if (c.macd_hist && c.macd_hist.length) {
-        const hist = indChart.addHistogramSeries({ priceLineVisible: false });
-        hist.setData(c.macd_hist);
-        indSeries.push(hist);
-      }
-      const macdLine = indChart.addLineSeries({ color: '#00E5C7', lineWidth: 1, priceLineVisible: false });
-      macdLine.setData(c.macd);
-      indSeries.push(macdLine);
-      if (c.macd_signal && c.macd_signal.length) {
-        const sig = indChart.addLineSeries({ color: '#F0B90B', lineWidth: 1, priceLineVisible: false });
-        sig.setData(c.macd_signal);
-        indSeries.push(sig);
-      }
-    }
-    try { indChart.timeScale().setVisibleLogicalRange(chart.timeScale().getVisibleLogicalRange()); } catch (e) {}
   }
 
   function clearExtraSeries() {
@@ -559,8 +463,6 @@
     renderParams(data.setup);
     renderReasons(data.setup.reasons);
     renderCorrelation(data.btc_correlation);
-    document.getElementById('ind-tabs').style.display = 'flex';
-    renderIndicator(activeIndicator);
     document.getElementById('content-below').style.display = 'block';
     startLiveUpdates();
   }
@@ -627,13 +529,6 @@
     });
   });
 
-  document.querySelectorAll('#ind-tabs button').forEach(function (b) {
-    b.addEventListener('click', function () {
-      haptic('light');
-      activeIndicator = b.getAttribute('data-ind');
-      renderIndicator(activeIndicator);
-    });
-  });
 
   function refreshAnalysis() { haptic('medium'); loadAnalysis(); }
 
@@ -685,14 +580,11 @@
         '<div class="res-left"><span class="res-base">' + escapeHtml(s.base) + '</span>' +
         '<span class="res-pair">' + escapeHtml(s.symbol) + '</span></div>' +
         '<div class="res-right"><span class="res-price">' + price + '</span>' + ch + '</div>' +
-        '<button type="button" class="res-star' + (s.in_watchlist ? ' on' : '') + '" ' +
-        'data-star="' + escapeAttr(s.symbol) + '" title="' + t('search_add_watchlist') + '">★</button>' +
         '</div>';
     }).join('');
 
     pickerList.querySelectorAll('.picker-item').forEach(function (item) {
       item.addEventListener('click', function (e) {
-        if (e.target.classList.contains('res-star')) return;   // звезда — отдельное действие
         haptic('light');
         currentSymbol = item.getAttribute('data-symbol');
         pickerOverlay.style.display = 'none';
@@ -700,27 +592,6 @@
       });
     });
 
-    pickerList.querySelectorAll('.res-star').forEach(function (star) {
-      star.addEventListener('click', async function (e) {
-        e.stopPropagation();
-        haptic('light');
-        const r = await apiFetch('/api/watchlist', {
-          method: 'POST',
-          body: JSON.stringify({ symbol: star.getAttribute('data-star'), action: 'toggle' }),
-        });
-        if (r.status === 409 && r.data) {
-          notify('error');
-          alert(r.data.error === 'watchlist_full'
-            ? t('search_watchlist_full', { max: r.data.max })
-            : t('search_watchlist_min'));
-          return;
-        }
-        if (r.ok && r.data) {
-          star.classList.toggle('on', r.data.in_watchlist);
-          notify('success');
-        }
-      });
-    });
   }
 
   pickerSearch.addEventListener('input', function () {

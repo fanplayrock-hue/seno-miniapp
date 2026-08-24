@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Скринер</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="locales.js?v=c99b80b4"></script>
+<script src="locales.js?v=5773e547"></script>
 <script src="shared.js?v=2a001283"></script>
 <style>
   :root {
@@ -26,17 +26,15 @@
   .segment button.active { background: var(--accent); color: #04342C; }
   .segment button:active { opacity: 0.85; }
 
-  .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 11px 14px; color: var(--text-primary); font-family: var(--font); font-size: 13.5px; margin-bottom: 10px; }
-  .search-input:focus { outline: none; border-color: var(--accent); }
-
-  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
-  .refresh-btn { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center; margin-left: auto; }
-  .refresh-btn svg { width: 17px; height: 17px; transition: transform 0.5s ease-out; }
-  .refresh-btn.spinning svg { transform: rotate(360deg); }
+  .refresh-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
+    color: var(--accent); font-family: var(--font); font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .refresh-btn svg { width: 16px; height: 16px; }
+  .refresh-btn.spinning svg { animation: spin 0.9s linear infinite; }
   .refresh-btn:active { opacity: 0.8; }
-  .cache-note { font-size: 11px; color: var(--text-tertiary); display: flex; align-items: center; }
+  .refresh-btn[disabled] { opacity: 0.55; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .cache-note { font-size: 11px; color: var(--text-tertiary); text-align: center; margin: 0 0 14px; }
 
   .list { display: flex; flex-direction: column; gap: 8px; }
   .row { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 14px; background: var(--surface);
@@ -81,14 +79,11 @@
     <button data-cat="position" data-i18n="scr_seg_position">Долгосрочная</button>
   </div>
 
-  <input class="search-input" id="search" data-i18n-placeholder="scr_search" placeholder="Поиск по тикеру">
-
-  <div class="toolbar">
-    <span class="cache-note" id="cache-note"></span>
-    <button class="refresh-btn" id="refresh">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="#00E5C7" stroke-width="1.8" stroke-linecap="round"/><path d="M20 4v5h-5" stroke="#00E5C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-  </div>
+  <button class="refresh-btn" id="refresh">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M20 4v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span data-i18n="scr_refresh">Обновить скринер</span>
+  </button>
+  <p class="cache-note" id="cache-note"></p>
 
   <div id="skeleton">
     <div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>
@@ -123,27 +118,6 @@
   let lastRows = [];
   let lastTimeframe = '';
 
-  /**
-   * Фильтрация идёт по уже загруженным строкам, без повторного запроса:
-   * скринер отдаёт готовый снимок рынка, и дёргать сервер на каждую
-   * набранную букву незачем.
-   */
-  function applySearch() {
-    const q = (document.getElementById('search').value || '').trim().toUpperCase();
-    const rows = q ? lastRows.filter(function (r) { return r.symbol.indexOf(q) !== -1; }) : lastRows;
-
-    if (!rows.length) {
-      listEl.style.display = 'none';
-      emptyEl.style.display = 'flex';
-      emptyEl.querySelector('.t').textContent = q ? t('scr_nothing_found', { query: q }) : t('scr_empty_t');
-      emptyEl.querySelector('.d').textContent = q ? '' : t('scr_empty_d');
-      return;
-    }
-    emptyEl.style.display = 'none';
-    renderRows(rows, lastTimeframe);
-    listEl.style.display = 'flex';
-  }
-
   function pillHtml(sig, conf) {
     const cls = sig === 'BUY' ? 'buy' : sig === 'SELL' ? 'sell' : 'wait';
     return '<span class="pill ' + cls + '">' + sig + ' ' + conf + '%</span>';
@@ -168,14 +142,18 @@
     });
   }
 
-  async function loadCategory(category) {
+  async function loadCategory(category, force) {
     currentCat = category;
     listEl.style.display = 'none';
     emptyEl.style.display = 'none';
     lockCard.style.display = 'none';
     skeletonEl.style.display = 'block';
 
-    const r = await apiFetch('/api/screener?' + qs({ category: category }));
+    // force=1 уходит только с кнопки «Обновить»: при обычном открытии
+    // берём общий кэш, иначе каждый вход в приложение запускал бы
+    // полное сканирование рынка.
+    const params = force ? { category: category, force: 1 } : { category: category };
+    const r = await apiFetch('/api/screener?' + qs(params));
     skeletonEl.style.display = 'none';
 
     if (!r.ok || !r.data) {
@@ -191,9 +169,8 @@
       return;
     }
 
-    lastRows = data.rows;
-    lastTimeframe = data.timeframe;
-    applySearch();
+    renderRows(data.rows, data.timeframe);
+    listEl.style.display = 'flex';
 
     if (data.locked) {
       const hidden = data.total - data.rows.length;
@@ -214,14 +191,17 @@
 
   document.getElementById('refresh').addEventListener('click', function () {
     const btn = this;
+    // Полное пересканирование занимает секунды — блокируем кнопку,
+    // иначе нетерпеливые нажатия выстроят очередь сканирований.
+    if (btn.disabled) return;
+    btn.disabled = true;
     btn.classList.add('spinning');
     haptic('medium');
-    loadCategory(currentCat).then(function () {
-      setTimeout(function () { btn.classList.remove('spinning'); }, 500);
+    loadCategory(currentCat, true).then(function () {
+      btn.classList.remove('spinning');
+      btn.disabled = false;
     });
   });
-
-  document.getElementById('search').addEventListener('input', applySearch);
 
   document.getElementById('lock-btn').addEventListener('click', function () {
     haptic('light');

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Профиль и настройки</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="locales.js?v=c99b80b4"></script>
+<script src="locales.js?v=5773e547"></script>
 <script src="shared.js?v=2a001283"></script>
 <style>
   :root {
@@ -56,20 +56,6 @@
   .toast.show { opacity: 1; }
   .toast.err { background: var(--down); color: #fff; }
 
-  .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
-  .sheet { width: 100%; max-width: 420px; background: var(--surface); border-radius: 20px 20px 0 0; border: 1px solid var(--border);
-    padding: 16px; max-height: 76vh; display: flex; flex-direction: column; }
-  .sheet h3 { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
-  .sheet .sub { font-size: 12px; color: var(--text-tertiary); margin: 0 0 12px; }
-  .sheet-list { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-  .coin-item { display: flex; align-items: center; gap: 10px; padding: 11px 10px; border-radius: 10px; font-size: 14px; font-weight: 700; }
-  .coin-item:active { background: var(--surface-raised); }
-  .coin-box { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--border); background: var(--surface-raised);
-    display: flex; align-items: center; justify-content: center; flex: none; }
-  .coin-item.on .coin-box { background: var(--accent); border-color: var(--accent); }
-  .coin-item .quote { color: var(--text-tertiary); font-weight: 400; font-size: 12px; }
-  .sheet-done { width: 100%; padding: 13px; border-radius: 12px; background: var(--accent); color: #04342C;
-    font-family: var(--font); font-size: 14.5px; font-weight: 700; border: none; }
 
   .footer { text-align: center; margin-top: 6px; margin-bottom: 90px; }
   .footer svg { width: 22px; height: 22px; opacity: 0.35; margin-bottom: 8px; }
@@ -102,13 +88,6 @@
       <span class="setting-label" data-i18n="set_timeframe">Таймфрейм по умолчанию</span>
       <div class="chip-row" id="tf-row"></div>
     </div>
-    <div class="link-row" id="watchlist-row">
-      <div>
-        <div class="setting-label" data-i18n="set_watchlist">Отслеживаемые монеты</div>
-        <p class="setting-hint" data-i18n="set_watchlist_hint">Выберите монеты, которые будет сканировать скринер</p>
-      </div>
-      <span class="setting-value"><span id="watchlist-count">—</span><span class="chev">›</span></span>
-    </div>
   </div>
 
   <p class="group-title" data-i18n="set_account">Аккаунт</p>
@@ -130,22 +109,12 @@
 
 <div class="toast" id="toast"></div>
 
-<div class="sheet-overlay" id="wl-overlay">
-  <div class="sheet">
-    <h3 data-i18n="set_watchlist">Отслеживаемые монеты</h3>
-    <p class="sub" data-i18n="set_watchlist_hint">Выберите монеты, которые будет сканировать скринер</p>
-    <div class="sheet-list" id="wl-list"></div>
-    <button class="sheet-done" id="wl-done" data-i18n="save">Сохранить</button>
-  </div>
-</div>
-
 <script>
   if (tg && tg.BackButton) { try { tg.BackButton.hide(); } catch (e) {} }
   renderHeader({ title: t('set_word') });
   renderBottomNav('settings');
 
   let cfg = null;              // текущие настройки с сервера
-  let draftWatchlist = [];     // правки в шторке до нажатия «Сохранить»
 
   function showToast(message, isError) {
     const el = document.getElementById('toast');
@@ -218,53 +187,7 @@
       });
     });
 
-    document.getElementById('watchlist-count').textContent = tp('set_coins', cfg.watchlist.length);
   }
-
-  function renderWatchlistSheet() {
-    const list = document.getElementById('wl-list');
-    list.innerHTML = cfg.available.all_symbols.map(function (sym) {
-      const on = draftWatchlist.indexOf(sym) !== -1;
-      return '<div class="coin-item' + (on ? ' on' : '') + '" data-symbol="' + sym + '">' +
-        '<span class="coin-box">' + (on ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13L10 18L19 7" stroke="#04342C" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '') + '</span>' +
-        '<span>' + sym.split('/')[0] + ' <span class="quote">/' + sym.split('/')[1] + '</span></span></div>';
-    }).join('');
-    list.querySelectorAll('.coin-item').forEach(function (item) {
-      item.addEventListener('click', function () {
-        const sym = item.getAttribute('data-symbol');
-        const i = draftWatchlist.indexOf(sym);
-        if (i === -1) draftWatchlist.push(sym); else draftWatchlist.splice(i, 1);
-        haptic('light');
-        renderWatchlistSheet();
-      });
-    });
-  }
-
-  document.getElementById('watchlist-row').addEventListener('click', function () {
-    if (!cfg) return;
-    haptic('light');
-    draftWatchlist = cfg.watchlist.slice();
-    renderWatchlistSheet();
-    document.getElementById('wl-overlay').style.display = 'flex';
-  });
-
-  document.getElementById('wl-done').addEventListener('click', async function () {
-    // Пустой список означал бы «скринеру нечего сканировать», поэтому
-    // не даём сохранить его молча — сервер вернул бы список по умолчанию,
-    // и выбор пользователя выглядел бы проигнорированным.
-    if (!draftWatchlist.length) {
-      notify('error');
-      showToast(t('set_min_coins'), true);
-      return;
-    }
-    haptic('medium');
-    const ok = await saveSettings({ watchlist: draftWatchlist });
-    if (ok) document.getElementById('wl-overlay').style.display = 'none';
-  });
-
-  document.getElementById('wl-overlay').addEventListener('click', function (e) {
-    if (e.target === this) this.style.display = 'none';
-  });
 
   async function load() {
     const [meRes, cfgRes] = await Promise.all([apiFetch('/api/me'), apiFetch('/api/settings')]);
