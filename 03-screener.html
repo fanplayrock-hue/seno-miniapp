@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Скринер</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="locales.js?v=f259db78"></script>
+<script src="locales.js?v=e6ff3915"></script>
 <script src="shared.js?v=2a001283"></script>
 <style>
   :root {
@@ -162,7 +162,18 @@
     }
 
     const data = r.data;
-    cacheNote.textContent = data.cache_age_seconds !== null ? t('scr_updated_prefix') + ' ' + timeAgoRu(data.cache_age_seconds) : '';
+    // Показываем охват честно: сколько пар реально прошло анализ и сколько
+    // всего на бирже — иначе непонятно, откуда взялись именно эти монеты.
+    const parts = [];
+    if (data.cache_age_seconds !== null) {
+      parts.push(t('scr_updated_prefix') + ' ' + timeAgoRu(data.cache_age_seconds));
+    }
+    if (data.scanned) {
+      parts.push(t('scr_scanned', {
+        shown: data.total, scanned: data.scanned, universe: data.universe,
+      }));
+    }
+    cacheNote.textContent = parts.join(' · ');
 
     if (!data.rows.length) {
       emptyEl.style.display = 'flex';
