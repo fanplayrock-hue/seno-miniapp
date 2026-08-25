@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="locales.js?v=e6ff3915"></script>
+<script src="locales.js?v=fdecc66a"></script>
 <script src="shared.js?v=2a001283"></script>
 <style>
   :root {
     --bg: #000000; --surface: #0B0B0E; --surface-raised: #131318; --border: #1E1E24;
     --text-primary: #F2F4F7; --text-secondary: #8A8F9C; --text-tertiary: #5A5F6B;
-    --accent: #00E5C7;
+    --accent: #00E5C7; --up: #1FCF6C; --down: #F6465D;
     --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -19,21 +19,102 @@
     font-family: var(--font); min-height: 100vh; overscroll-behavior-y: none; }
   body { display: flex; justify-content: center; }
 
-  .app-shell { width: 100%; max-width: 420px; min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; padding: 24px 20px calc(28px + env(safe-area-inset-bottom)); }
+  /* ------------------------------------------------------------------
+     Фон приветственного экрана.
+     Свечи, сетка и линия тренда — это ровно то, что пользователь увидит
+     внутри приложения, поэтому фон работает и как визуал, и как обещание
+     содержимого. Всё нарисовано SVG и CSS: ни одной картинки не грузим,
+     экран открывается мгновенно даже на плохой связи.
+     ------------------------------------------------------------------ */
+  .backdrop { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .backdrop svg { position: absolute; width: 100%; height: 100%; }
+  /* Свечение позади логотипа — даёт глубину и убирает ощущение плоского чёрного листа */
+  .glow { position: absolute; left: 50%; top: 38%; width: 460px; height: 460px; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(0,229,199,0.20) 0%, rgba(0,229,199,0.06) 38%, rgba(0,0,0,0) 68%);
+    animation: breathe 7s ease-in-out infinite; }
+  @keyframes breathe { 0%, 100% { opacity: 0.75; transform: translate(-50%, -50%) scale(1); }
+                       50% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); } }
+  /* Затемнение к центру: текст и кнопка должны читаться поверх графики */
+  .vignette { position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 42%, rgba(0,0,0,0.86) 0%, rgba(0,0,0,0.62) 42%, rgba(0,0,0,0.9) 100%); }
 
-  .logo { width: 104px; height: 104px; filter: drop-shadow(0 0 28px rgba(0, 229, 199, 0.3)); margin-bottom: 18px; }
+  .trend-line { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: draw 2.6s ease-out 0.25s forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .candle { opacity: 0; animation: rise 0.5s ease-out forwards; }
+  @keyframes rise { to { opacity: 1; } }
+
+  .app-shell { position: relative; z-index: 1; width: 100%; max-width: 420px; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 20px calc(28px + env(safe-area-inset-bottom)); }
+
+  .logo { width: 104px; height: 104px; filter: drop-shadow(0 0 28px rgba(0, 229, 199, 0.35)); margin-bottom: 18px; }
   .wordmark { font-size: 40px; font-weight: 700; letter-spacing: -0.03em; margin: 0; }
+  .tagline { font-size: 13.5px; color: var(--text-secondary); text-align: center; line-height: 1.5;
+    margin: 10px 0 0; max-width: 270px; }
 
   .cta { margin-top: 40px; width: 100%; max-width: 320px; height: 54px; border: none; border-radius: 14px;
     background: var(--accent); color: #04342C; font-family: var(--font); font-size: 15.5px; font-weight: 700;
     box-shadow: 0 10px 30px rgba(0, 229, 199, 0.26); }
   .cta:active { transform: scale(0.98); opacity: 0.92; }
 
-  .lang { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 18px; }
+  .disclaimer { font-size: 11px; color: var(--text-tertiary); text-align: center; line-height: 1.45;
+    margin: 18px 0 0; max-width: 300px; }
+
+  .lang { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 18px; z-index: 2; }
+
+  /* Пользователь мог отключить анимации на уровне системы — уважаем это. */
+  @media (prefers-reduced-motion: reduce) {
+    .glow, .trend-line, .candle { animation: none; }
+    .trend-line { stroke-dashoffset: 0; }
+    .candle { opacity: 1; }
+  }
 </style>
 </head>
 <body>
+
+<div class="backdrop" aria-hidden="true">
+  <svg viewBox="0 0 420 760" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+        <path d="M42 0 L0 0 0 42" fill="none" stroke="#12121A" stroke-width="1"/>
+      </pattern>
+      <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#00E5C7" stop-opacity="0.5"/>
+        <stop offset="1" stop-color="#00E5C7" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+
+    <rect width="420" height="760" fill="url(#grid)"/>
+
+    <!-- Свечи: правая часть растёт — визуально это «сетап отработал» -->
+    <g stroke-width="2" stroke-linecap="round">
+      <g class="candle" style="animation-delay:0.05s"><line x1="34"  y1="560" x2="34"  y2="614" stroke="#F6465D"/><rect x="29"  y="572" width="10" height="30" fill="#F6465D" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.12s"><line x1="70"  y1="576" x2="70"  y2="640" stroke="#F6465D"/><rect x="65"  y="590" width="10" height="36" fill="#F6465D" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.19s"><line x1="106" y1="556" x2="106" y2="628" stroke="#1FCF6C"/><rect x="101" y="572" width="10" height="44" fill="#1FCF6C" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.26s"><line x1="142" y1="520" x2="142" y2="590" stroke="#1FCF6C"/><rect x="137" y="534" width="10" height="44" fill="#1FCF6C" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.33s"><line x1="178" y1="536" x2="178" y2="596" stroke="#F6465D"/><rect x="173" y="548" width="10" height="34" fill="#F6465D" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.40s"><line x1="214" y1="486" x2="214" y2="566" stroke="#1FCF6C"/><rect x="209" y="500" width="10" height="52" fill="#1FCF6C" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.47s"><line x1="250" y1="452" x2="250" y2="522" stroke="#1FCF6C"/><rect x="245" y="466" width="10" height="44" fill="#1FCF6C" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.54s"><line x1="286" y1="470" x2="286" y2="528" stroke="#F6465D"/><rect x="281" y="482" width="10" height="32" fill="#F6465D" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.61s"><line x1="322" y1="410" x2="322" y2="496" stroke="#1FCF6C"/><rect x="317" y="424" width="10" height="58" fill="#1FCF6C" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.68s"><line x1="358" y1="378" x2="358" y2="452" stroke="#1FCF6C"/><rect x="353" y="392" width="10" height="46" fill="#1FCF6C" opacity="0.85"/></g>
+      <g class="candle" style="animation-delay:0.75s"><line x1="394" y1="344" x2="394" y2="416" stroke="#1FCF6C"/><rect x="389" y="356" width="10" height="46" fill="#1FCF6C" opacity="0.85"/></g>
+    </g>
+
+    <!-- Линия тренда прочерчивается при открытии: экран оживает сам, без картинок -->
+    <path class="trend-line" d="M-10 660 L34 592 L70 610 L106 594 L142 556 L178 566 L214 526 L250 488 L286 500 L322 452 L358 414 L394 378 L430 340"
+          fill="none" stroke="#00E5C7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Уровни поддержки/сопротивления — те же пунктиры, что и в анализе -->
+    <line x1="0" y1="470" x2="420" y2="470" stroke="#00E5C7" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="5 6"/>
+    <line x1="0" y1="612" x2="420" y2="612" stroke="#F6465D" stroke-opacity="0.20" stroke-width="1" stroke-dasharray="5 6"/>
+
+    <rect y="120" width="420" height="180" fill="url(#fade)" opacity="0.10"/>
+  </svg>
+  <div class="glow"></div>
+  <div class="vignette"></div>
+</div>
+
 <div class="app-shell">
 
   <div class="lang" id="lang-host"></div>
@@ -44,8 +125,10 @@
     <circle cx="37" cy="14" r="3" fill="#00E5C7"/>
   </svg>
   <p class="wordmark">Seno</p>
+  <p class="tagline" data-i18n="onb_tagline">Trading setups, not guesswork</p>
 
-  <button class="cta" id="cta" data-i18n="onb_cta">See signals</button>
+  <button class="cta" id="cta" data-i18n="onb_cta">Run analysis</button>
+  <p class="disclaimer" data-i18n="onb_disclaimer">This is analytics, not investment advice. Trading crypto carries risk of loss.</p>
 </div>
 
 <script>

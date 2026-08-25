@@ -6,7 +6,7 @@
 <title>Seno — Анализ монеты</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
-<script src="locales.js?v=e6ff3915"></script>
+<script src="locales.js?v=fdecc66a"></script>
 <script src="shared.js?v=2a001283"></script>
 <style>
   :root {
@@ -97,6 +97,27 @@
   .res-ch { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; }
   .res-ch.up { color: var(--up); } .res-ch.down { color: var(--down); }
   .picker-close { text-align: center; font-size: 13px; color: var(--text-secondary); padding: 10px 0 2px; }
+
+  /* Экран сканирования: полный анализ монеты идёт секунды (сеть биржи +
+     расчёт индикаторов), и без него пользователь смотрел на пустую
+     страницу и не понимал, работает приложение или зависло. */
+  .scan-overlay { position: fixed; inset: 0; z-index: 60; background: var(--bg);
+    display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px; }
+  .scan-overlay.on { display: flex; }
+  .scan-radar { position: relative; width: 132px; height: 132px; margin-bottom: 26px; }
+  .scan-radar svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .scan-radar .sweep { animation: sweep 1.6s linear infinite; transform-origin: 50% 50%; }
+  @keyframes sweep { to { transform: rotate(360deg); } }
+  .scan-radar .ping { transform-origin: 50% 50%; animation: ping 2.2s ease-out infinite; }
+  .scan-radar .ping.b { animation-delay: 1.1s; }
+  @keyframes ping { 0% { r: 12; opacity: 0.55; } 100% { r: 62; opacity: 0; } }
+  .scan-title { font-size: 17px; font-weight: 700; margin: 0 0 8px; text-align: center; }
+  .scan-sub { font-size: 12.5px; color: var(--text-secondary); text-align: center; line-height: 1.5; margin: 0 0 22px; max-width: 280px; }
+  .scan-steps { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 240px; }
+  .scan-step { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-tertiary); transition: color 0.25s ease-out; }
+  .scan-step .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background 0.25s ease-out; }
+  .scan-step.on { color: var(--text-primary); }
+  .scan-step.on .dot { background: var(--accent); box-shadow: 0 0 10px rgba(0,229,199,0.8); }
 </style>
 </head>
 <body>
@@ -162,6 +183,36 @@
   <div class="lock-card" id="lock-card" style="display:none">
     <p id="lock-text" data-i18n="an_lock_text">Полный анализ этой монеты доступен по подписке. Бесплатно можно посмотреть BTC/USDT на 4ч.</p>
     <button class="lock-btn" id="lock-btn" data-i18n="an_lock_btn">Оформить подписку — $59/мес</button>
+  </div>
+</div>
+
+<div class="scan-overlay" id="scan-overlay">
+  <div class="scan-radar">
+    <svg viewBox="0 0 132 132" fill="none">
+      <circle cx="66" cy="66" r="62" stroke="#1E1E24" stroke-width="1"/>
+      <circle cx="66" cy="66" r="42" stroke="#1E1E24" stroke-width="1"/>
+      <circle cx="66" cy="66" r="22" stroke="#1E1E24" stroke-width="1"/>
+      <circle class="ping" cx="66" cy="66" r="12" stroke="#00E5C7" stroke-width="1.5" fill="none"/>
+      <circle class="ping b" cx="66" cy="66" r="12" stroke="#00E5C7" stroke-width="1.5" fill="none"/>
+      <g class="sweep">
+        <path d="M66 66 L66 4 A62 62 0 0 1 119 36 Z" fill="url(#scan-grad)"/>
+        <line x1="66" y1="66" x2="66" y2="4" stroke="#00E5C7" stroke-width="1.5"/>
+      </g>
+      <circle cx="66" cy="66" r="3" fill="#00E5C7"/>
+      <defs>
+        <linearGradient id="scan-grad" x1="66" y1="66" x2="119" y2="20" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#00E5C7" stop-opacity="0.32"/>
+          <stop offset="1" stop-color="#00E5C7" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+  <p class="scan-title" id="scan-title"></p>
+  <p class="scan-sub" id="scan-sub"></p>
+  <div class="scan-steps">
+    <div class="scan-step" id="scan-step-1"><span class="dot"></span><span></span></div>
+    <div class="scan-step" id="scan-step-2"><span class="dot"></span><span></span></div>
+    <div class="scan-step" id="scan-step-3"><span class="dot"></span><span></span></div>
   </div>
 </div>
 
@@ -290,9 +341,18 @@
     (data.patterns || []).forEach(function (p) {
       const short = shortPatternLabel(p.label);
       (p.lines || []).forEach(function (line) {
-        if (!line.length) return;
+        if (line.length < 2) return;
         const s = chart.addLineSeries({ color: '#F0B90B', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-        s.setData(line.map(function (pt) { return { time: pt.time, value: pt.price }; }));
+        // Разметка паттернов — украшение поверх графика. Если конкретная
+        // ломаная не понравится библиотеке, теряем только её, а не свечи,
+        // уровни и точки входа: раньше одно исключение здесь оставляло
+        // пользователя с пустым экраном «нет данных».
+        try {
+          s.setData(line.map(function (pt) { return { time: pt.time, value: pt.price }; }));
+        } catch (e) {
+          try { chart.removeSeries(s); } catch (e2) {}
+          return;
+        }
 
         const at = line[line.length - 1].time;
         if (!labelledTimes.has(at)) {
@@ -401,7 +461,46 @@
     }).join('');
   }
 
-  async function loadAnalysis() {
+  /**
+   * Экран сканирования монеты.
+   *
+   * Полный анализ — это запрос свечей на биржу плюс расчёт индикаторов,
+   * уровней, ордер-блоков и паттернов, и занимает он секунды. Скринер
+   * специально их не считает заранее (он отбирает монеты поверхностно),
+   * поэтому ожидание после клика по монете — норма, и его надо показать,
+   * а не оставлять пользователя перед пустой страницей.
+   *
+   * Шаги подсвечиваются по таймеру, а не по реальному прогрессу: сервер
+   * отдаёт готовый результат одним ответом и промежуточных стадий не
+   * присылает. Названия шагов при этом честные — именно это и считается.
+   */
+  const scanOverlay = document.getElementById('scan-overlay');
+  let scanTimers = [];
+
+  function startScanOverlay() {
+    stopScanOverlay();
+    document.getElementById('scan-title').textContent = t('an_scanning_title', { symbol: currentSymbol });
+    document.getElementById('scan-sub').textContent = t('an_scanning_sub', { tf: currentTf });
+    [1, 2, 3].forEach(function (i) {
+      const row = document.getElementById('scan-step-' + i);
+      row.classList.remove('on');
+      row.lastElementChild.textContent = t('an_scanning_step' + i);
+    });
+    scanOverlay.classList.add('on');
+    document.getElementById('scan-step-1').classList.add('on');
+    scanTimers.push(setTimeout(function () { document.getElementById('scan-step-2').classList.add('on'); }, 900));
+    scanTimers.push(setTimeout(function () { document.getElementById('scan-step-3').classList.add('on'); }, 1900));
+  }
+
+  function stopScanOverlay() {
+    scanTimers.forEach(clearTimeout);
+    scanTimers = [];
+    scanOverlay.classList.remove('on');
+  }
+
+  async function loadAnalysis(options) {
+    const showScan = !options || options.scan !== false;
+    if (showScan) startScanOverlay();
     document.getElementById('coin-pair').textContent = currentSymbol;
     setActiveTf(currentTf);
     document.getElementById('chart-loading').style.display = 'flex';
@@ -419,6 +518,10 @@
     }
 
     renderStickyButton({ text: t('an_main_btn'), onClick: refreshAnalysis });
+    // Дальше в любом случае есть что показать — результат, пейволл или
+    // объяснение ошибки. Оверлей снимаем здесь одной строкой, чтобы он не
+    // «завис» ни на одной из веток ниже.
+    stopScanOverlay();
 
     if (r.status === 402) {
       document.getElementById('chart-loading').textContent = t('an_locked_title');

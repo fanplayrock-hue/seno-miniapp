@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Seno — Скринер</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="locales.js?v=e6ff3915"></script>
+<script src="locales.js?v=fdecc66a"></script>
 <script src="shared.js?v=2a001283"></script>
 <style>
   :root {
@@ -25,6 +25,12 @@
     font-size: 12.5px; font-weight: 700; padding: 9px 4px; border-radius: 9px; transition: background 0.18s ease-out, color 0.18s ease-out; }
   .segment button.active { background: var(--accent); color: #04342C; }
   .segment button:active { opacity: 0.85; }
+
+  .tf-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .tf-pill { flex: 1; font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 8px 0; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary); text-align: center; }
+  .tf-pill.active { background: var(--accent); color: #04342C; border-color: var(--accent); }
+  .tf-pill:active { opacity: 0.8; }
 
   .refresh-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 11px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border);
@@ -79,6 +85,14 @@
     <button data-cat="position" data-i18n="scr_seg_position">Долгосрочная</button>
   </div>
 
+  <div class="tf-row" id="tf-row">
+    <button class="tf-pill" data-tf="5m">5m</button>
+    <button class="tf-pill" data-tf="15m">15m</button>
+    <button class="tf-pill" data-tf="1h">1h</button>
+    <button class="tf-pill" data-tf="4h">4h</button>
+    <button class="tf-pill" data-tf="1d">1d</button>
+  </div>
+
   <button class="refresh-btn" id="refresh">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M20 4v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span data-i18n="scr_refresh">Обновить скринер</span>
@@ -115,12 +129,21 @@
   const lockCard = document.getElementById('lock-card');
   const cacheNote = document.getElementById('cache-note');
   let currentCat = 'scalping';
-  let lastRows = [];
-  let lastTimeframe = '';
+  // Таймфрейм скринера: null означает «взять основной для категории»,
+  // как только пользователь выбрал свой — держимся его при смене вкладок.
+  let currentTf = null;
+  // Каждая категория сканируется на своём таймфрейме по умолчанию.
+  const CATEGORY_TF = { scalping: '5m', swing: '4h', position: '1d' };
 
   function pillHtml(sig, conf) {
     const cls = sig === 'BUY' ? 'buy' : sig === 'SELL' ? 'sell' : 'wait';
     return '<span class="pill ' + cls + '">' + sig + ' ' + conf + '%</span>';
+  }
+
+  function setActiveTf(tf) {
+    document.querySelectorAll('.tf-pill').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-tf') === tf);
+    });
   }
 
   function renderRows(rows, timeframe) {
@@ -144,19 +167,24 @@
 
   async function loadCategory(category, force) {
     currentCat = category;
+    const tf = currentTf || CATEGORY_TF[category] || '4h';
+    setActiveTf(tf);
     listEl.style.display = 'none';
     emptyEl.style.display = 'none';
     lockCard.style.display = 'none';
+    cacheNote.textContent = t('scr_scanning_market');
     skeletonEl.style.display = 'block';
 
     // force=1 уходит только с кнопки «Обновить»: при обычном открытии
     // берём общий кэш, иначе каждый вход в приложение запускал бы
     // полное сканирование рынка.
-    const params = force ? { category: category, force: 1 } : { category: category };
+    const params = { category: category, timeframe: tf };
+    if (force) params.force = 1;
     const r = await apiFetch('/api/screener?' + qs(params));
     skeletonEl.style.display = 'none';
 
     if (!r.ok || !r.data) {
+      cacheNote.textContent = '';
       emptyEl.style.display = 'flex';
       return;
     }
@@ -196,7 +224,24 @@
       haptic('light');
       document.querySelectorAll('.segment button').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
+      // Сбрасываем ручной выбор ТФ: категория задаёт горизонт сделки, и
+      // смотреть «долгосрок» на 15-минутках бессмысленно. Свой таймфрейм
+      // пользователь всегда может выбрать снова внутри вкладки.
+      currentTf = null;
       loadCategory(btn.getAttribute('data-cat'));
+    });
+  });
+
+  // Смена таймфрейма — это другой рынок: сетап, который есть на 5m, на 1d
+  // может не существовать вовсе. Поэтому монеты пересканируются заново,
+  // а не фильтруется уже показанный список.
+  document.querySelectorAll('.tf-pill').forEach(function (p) {
+    p.addEventListener('click', function () {
+      const tf = p.getAttribute('data-tf');
+      if (tf === (currentTf || CATEGORY_TF[currentCat])) return;
+      haptic('light');
+      currentTf = tf;
+      loadCategory(currentCat);
     });
   });
 
